@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response, abort
+from flask import Flask, render_template, request, redirect, url_for, session, make_response
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -13,24 +13,23 @@ from xhtml2pdf import pisa
 # -------------------------------------------------
 app = Flask(__name__)
 
-# Güvenli anahtar – Render/Prod'da ENV’den ver
+# Güvenli anahtar – Render/Prod'da ENV’den al
 app.secret_key = os.getenv("SECRET_KEY", "gizli_anahtar")
 
-# Neon/Postgres bağlantını ENV’den oku
-# Örn: postgresql+psycopg2://USER:PASS@ep-xxx-pooler.neon.tech:5432/DB?sslmode=require
-DB_URI = os.getenv("SQLALCHEMY_DATABASE_URI")
+# Neon/Postgres bağlantısı (Render -> Environment'da ayarlanacak)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# Yerelde ENV yoksa, fallback olarak sqlite kullan (opsiyonel)
-if not DB_URI:
+# Yerelde ENV yoksa sqlite fallback
+if not DATABASE_URL:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
-    DB_URI = f"sqlite:///{os.path.join(BASE_DIR, 'gorev_takip.db')}"
+    DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'gorev_takip.db')}"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = DB_URI
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Neon TLS ister; sadece Postgres'te sslmode=required gönder
+# Neon TLS ister; sslmode=require
 engine_opts = {"pool_pre_ping": True, "pool_recycle": 300}
-if DB_URI.startswith("postgresql"):
+if DATABASE_URL.startswith("postgresql"):
     engine_opts["connect_args"] = {"sslmode": "require"}
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_opts
 
@@ -45,7 +44,6 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
-    # İleride rol eklemek istersek: role = db.Column(db.String(20), default="personel", nullable=False)
 
     tasks_created = db.relationship("Task", foreign_keys="Task.user_id", backref="assigner", lazy=True)
     tasks_assigned = db.relationship("Task", foreign_keys="Task.assigned_to", backref="assignee", lazy=True)
@@ -58,7 +56,7 @@ class Task(db.Model):
     title = db.Column(db.String(200))
     location = db.Column(db.String(200))
     materials = db.Column(db.Text)
-    date = db.Column(db.String(50))            # basit tutuyoruz; istersen Date yaparız
+    date = db.Column(db.String(50))
     needs_support = db.Column(db.String(50))
     status = db.Column(db.String(50))
     assigned_to = db.Column(db.Integer, db.ForeignKey("users.id"))
@@ -66,7 +64,6 @@ class Task(db.Model):
     completed = db.Column(db.String(20), default="Hayir")
     completion_note = db.Column(db.Text, default="")
 
-    # Şablon uyumluluğu için isim kısayolları
     @property
     def assigner_name(self):
         return self.assigner.username if self.assigner else ""
@@ -123,40 +120,20 @@ def dashboard():
     all_users = User.query.order_by(User.username.asc()).all()
 
     if request.method == 'POST':
-        title = request.form['title'].strip()
-        location = request.form['location'].strip()
-        materials = request.form['materials'].strip()
-        date = request.form['date'].strip()
-        needs_support = request.form['needs_support'].strip()
-        status = request.form['status'].strip()
-        assigned_to = request.form.get('assigned_to')
-
-        if not assigned_to or not assigned_to.strip():
-            assigned_to = user_id
-        else:
-            assigned_to = int(assigned_to)
-
         t = Task(
             user_id=user_id,
-            title=title,
-            location=location,
-            materials=materials,
-            date=date,
-            needs_support=needs_support,
-            status=status,
-            assigned_to=assigned_to
+            title=request.form['title'].strip(),
+            location=request.form['location'].strip(),
+            materials=request.form['materials'].strip(),
+            date=request.form['date'].strip(),
+            needs_support=request.form['needs_support'].strip(),
+            status=request.form['status'].strip(),
+            assigned_to=int(request.form.get('assigned_to') or user_id)
         )
         db.session.add(t)
         db.session.commit()
 
-    # İstersen admin'e tüm kayıtlar, normal kullanıcıya kendi kayıtları:
-    # user = User.query.get(user_id)
-    # if user.role == 'admin':
-    #     tasks = Task.query.order_by(Task.id.desc()).all()
-    # else:
-    #     tasks = Task.query.filter(or_(Task.user_id == user_id, Task.assigned_to == user_id)).order_by(Task.id.desc()).all()
     tasks = Task.query.order_by(Task.id.desc()).all()
-
     return render_template('dashboard.html', tasks=tasks, all_users=all_users, current_user=user_id)
 
 @app.route('/assigned_tasks')
@@ -220,7 +197,7 @@ def export_pdf():
     tasks = Task.query.filter_by(completed="Evet").order_by(Task.id.desc()).all()
     rendered = render_template("report_pdf.html", tasks=tasks)
     pdf_io = BytesIO()
-    pisa.CreatePDF(rendered, dest=pdf_io)   # xhtml2pdf string kabul eder
+    pisa.CreatePDF(rendered, dest=pdf_io)
     pdf_io.seek(0)
 
     response = make_response(pdf_io.read())
@@ -249,9 +226,8 @@ def complete_task(task_id):
         return redirect(url_for('assigned_tasks'))
 
     if request.method == 'POST':
-        note = request.form['note'].strip()
         task.completed = "Evet"
-        task.completion_note = note
+        task.completion_note = request.form['note'].strip()
         task.status = "Tamamlandi"
         db.session.commit()
         return redirect(url_for('assigned_tasks'))
@@ -280,5 +256,4 @@ def health_db():
 
 
 if __name__ == '__main__':
-    # Geliştirme için yerelde çalıştır
     app.run(debug=True)
