@@ -1,0 +1,118 @@
+{% extends 'base.html' %}
+
+{% block title %}Görev Paneli{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Sol: Görev Ekleme -->
+    <div class="col-md-6">
+        <div class="card shadow mb-4">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Yeni Görev Ekle</h4>
+                <form method="POST">
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Görev Adı</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="location" class="form-label">Görev Yeri</label>
+                        <input type="text" class="form-control" id="location" name="location" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="materials" class="form-label">Gerekli Malzemeler</label>
+                        <input type="text" class="form-control" id="materials" name="materials">
+                    </div>
+                    <div class="mb-3">
+                        <label for="date" class="form-label">Planlanan Tarih</label>
+                        <input type="date" class="form-control" id="date" name="date" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="needs_support" class="form-label">Destek Birimi (varsa)</label>
+                        <input type="text" class="form-control" id="needs_support" name="needs_support">
+                    </div>
+                    <div class="mb-3">
+                        <label for="assigned_to" class="form-label">Görevi Atayacağınız Kişi</label>
+                        <select class="form-select" id="assigned_to" name="assigned_to">
+                            <option value="">Kendinize Atayın</option>
+                            {% for user in all_users %}
+                                <option value="{{ user[0] }}" {% if user[0] == current_user %}selected{% endif %}>
+                                    {{ user[1] }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Durum</label>
+                        <select class="form-select" id="status" name="status" required>
+                            <option value="Planlandı">Planlandı</option>
+                            <option value="Beklemede">Beklemede</option>
+                            <option value="Destek Bekleniyor">Destek Bekleniyor</option>
+                            <option value="Tamamlandı">Tamamlandı</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Görevi Kaydet</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sağ: Görev Listesi -->
+    <div class="col-md-6">
+        <div class="card shadow">
+            <div class="card-body">
+                <h4 class="card-title mb-4">Görev Listesi</h4>
+                {% if tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Ad</th>
+                                    <th>Yer</th>
+                                    <th>Tarih</th>
+                                    <th>Durum</th>
+                                    <th>Atanan</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                    <tr>
+                                        <td>{{ task[2] }}</td>
+                                        <td>{{ task[3] }}</td>
+                                        <td>{{ task[5] }}</td>
+                                        <td>
+                                            {% if task[7] == "Planlandı" %}
+                                                <span class="badge bg-primary">{{ task[7] }}</span>
+                                            {% elif task[7] == "Beklemede" %}
+                                                <span class="badge bg-warning text-dark">{{ task[7] }}</span>
+                                            {% elif task[7] == "Destek Bekleniyor" %}
+                                                <span class="badge bg-info text-dark">{{ task[7] }}</span>
+                                            {% elif task[7] == "Tamamlandı" %}
+                                                <span class="badge bg-success">{{ task[7] }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ task[7] }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ task.assignee_name or '-' }}</td>
+                                        <td>
+                                            {% if task[1] == current_user %}
+                                                <form method="POST" action="{{ url_for('delete_task', task_id=task[0]) }}" onsubmit="return confirm('Bu görevi silmek istiyor musunuz?');">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+                                                </form>
+                                            {% else %}
+                                                <span class="text-muted">Silme Yetkiniz Yok</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p>Henüz görev girilmemiş.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

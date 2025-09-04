@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Giriş Yap{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card card-elevate p-4">
+      <div class="card-body">
+
+        <!-- Logo -->
+        <div class="text-center mb-3">
+          <img
+            src="{{ url_for('static', filename='images/karacabey-logo.png') }}"
+            alt="Karacabey Bilgi İşlem"
+            class="d-block mx-auto brand-glow"
+            style="height:100px;"
+          >
+        </div>
+
+        <h3 class="card-title text-center mb-4">Giriş Yap</h3>
+
+        <form method="POST" action="{{ url_for('login') }}">
+          <div class="mb-3">
+            <label for="username" class="form-label">Kullanıcı Adı</label>
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              name="username"
+              autocomplete="username"
+              required
+            >
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Şifre</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-primary btn-elevate ripple-wrap">
+              Giriş Yap
+            </button>
+          </div>
+        </form>
+
+        <div class="text-center mt-3">
+          <small>Hesabınız yok mu? <a href="{{ url_for('register') }}">Kayıt Ol</a></small>
+        </div>
+
+        <!-- Alt Yazı -->
+        <div class="text-center mt-4">
+          <small class="text-muted" style="font-weight:600;">
+            Karacabey Belediyesi Bilgi İşlem Birimi
+          </small>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
