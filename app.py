@@ -169,7 +169,7 @@ def dashboard():
     user_id = session['user_id']
     all_users = User.query.order_by(User.username.asc()).all()
 
-    if request.method == 'POST']:
+    if request.method == 'POST':
         t = Task(
             user_id=user_id,
             title=request.form['title'].strip(),
