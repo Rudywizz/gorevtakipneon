@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, make_response, jsonify
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -7,6 +7,7 @@ import os
 import pandas as pd
 from io import BytesIO
 from xhtml2pdf import pisa
+from math import ceil
 
 # -------------------------------------------------
 # Flask & DB config
@@ -44,6 +45,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
     password = db.Column(db.String(200), nullable=False)
+    role = db.Column(db.String(20), default="user")  # user / admin
 
     tasks_created = db.relationship("Task", foreign_keys="Task.user_id", backref="assigner", lazy=True)
     tasks_assigned = db.relationship("Task", foreign_keys="Task.assigned_to", backref="assignee", lazy=True)
@@ -71,6 +73,43 @@ class Task(db.Model):
     @property
     def assignee_name(self):
         return self.assignee.username if self.assignee else ""
+
+
+# -------------------------------------------------
+# Yardımcı fonksiyonlar
+# -------------------------------------------------
+def apply_filters(query, user_id):
+    """URL parametrelerinden filtre uygula."""
+    q = request.args.get("q", "").strip()
+    status = request.args.get("status", "").strip()
+    mine = request.args.get("mine") == "1"
+    assigned = request.args.get("assigned", "").strip()
+
+    if q:
+        like = f"%{q}%"
+        query = query.filter(or_(
+            Task.title.ilike(like),
+            Task.location.ilike(like),
+            Task.materials.ilike(like)
+        ))
+
+    if status:
+        query = query.filter(Task.status == status)
+
+    if mine:
+        query = query.filter(or_(Task.user_id == user_id, Task.assigned_to == user_id))
+
+    if assigned.isdigit():
+        query = query.filter(Task.assigned_to == int(assigned))
+
+    return query
+
+
+def paginate(query, page, per_page=10):
+    total = query.count()
+    items = query.offset((page - 1) * per_page).limit(per_page).all()
+    pages = ceil(total / per_page) if per_page else 1
+    return items, total, pages
 
 
 # -------------------------------------------------
@@ -102,13 +141,14 @@ def login():
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
+            session['role'] = user.role
             return redirect(url_for('dashboard'))
         return "Hatalı giriş"
     return render_template('login.html')
 
 @app.route('/logout')
 def logout():
-    session.pop('user_id', None)
+    session.clear()
     return redirect(url_for('login'))
 
 @app.route('/dashboard', methods=['GET', 'POST'])
@@ -132,9 +172,25 @@ def dashboard():
         )
         db.session.add(t)
         db.session.commit()
+        return redirect(url_for('dashboard', **request.args))
 
-    tasks = Task.query.order_by(Task.id.desc()).all()
-    return render_template('dashboard.html', tasks=tasks, all_users=all_users, current_user=user_id)
+    # GET → filtre + sayfalama
+    base = Task.query.order_by(Task.id.desc())
+    filtered = apply_filters(base, user_id)
+    page = max(int(request.args.get("page", 1)), 1)
+    tasks, total, pages = paginate(filtered, page, per_page=10)
+
+    return render_template('dashboard.html',
+                           tasks=tasks,
+                           all_users=all_users,
+                           current_user=user_id,
+                           total=total,
+                           pages=pages,
+                           page=page,
+                           q=request.args.get("q", ""),
+                           f_status=request.args.get("status", ""),
+                           mine=request.args.get("mine") == "1",
+                           f_assigned=request.args.get("assigned", ""))
 
 @app.route('/assigned_tasks')
 def assigned_tasks():
@@ -165,23 +221,19 @@ def export_excel():
         return redirect(url_for('login'))
 
     tasks = Task.query.filter_by(completed="Evet").order_by(Task.id.desc()).all()
-    rows = [
-        [
-            t.title, t.location, t.date, t.materials, t.needs_support, t.status,
-            t.assigner.username if t.assigner else "",
-            t.assignee.username if t.assignee else "",
-            t.completion_note or ""
-        ]
-        for t in tasks
-    ]
-    df = pd.DataFrame(
-        rows,
-        columns=["Görev", "Yer", "Tarih", "Malzemeler", "Destek", "Durum", "Gorevi_Giren", "Atanan", "Aciklama"]
-    )
+    rows = [[
+        t.title, t.location, t.date, t.materials, t.needs_support, t.status,
+        t.assigner_name, t.assignee_name, t.completion_note or ""
+    ] for t in tasks]
+
+    df = pd.DataFrame(rows, columns=[
+        "Görev", "Yer", "Tarih", "Malzemeler", "Destek", "Durum",
+        "Gorevi_Giren", "Atanan", "Aciklama"
+    ])
 
     output = BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df.to_excel(writer, index=False, sheet_name='Tamamlanan Görevler')
+    with pd.ExcelWriter(output, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Tamamlanan Görevler")
     output.seek(0)
 
     response = make_response(output.read())
@@ -201,8 +253,8 @@ def export_pdf():
     pdf_io.seek(0)
 
     response = make_response(pdf_io.read())
-    response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = 'attachment; filename=rapor.pdf'
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = "attachment; filename=rapor.pdf"
     return response
 
 @app.route('/accept_task/<int:task_id>', methods=['POST'])
@@ -239,20 +291,22 @@ def delete_task(task_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
     user_id = session['user_id']
-    task = Task.query.filter_by(id=task_id, user_id=user_id).first()
-    if task:
+    role = session.get("role", "user")
+
+    task = Task.query.filter_by(id=task_id).first()
+    if task and (task.user_id == user_id or role == "admin"):
         db.session.delete(task)
         db.session.commit()
     return redirect(url_for('dashboard'))
 
-# Sağlık kontrolü (Neon bağlantısı için pratik)
+# Sağlık kontrolü
 @app.route('/health/db')
 def health_db():
     try:
         db.session.execute(text("SELECT 1"))
-        return "db ok", 200
+        return jsonify({"status": "ok"}), 200
     except Exception as e:
-        return f"db error: {e}", 500
+        return jsonify({"status": "error", "detail": str(e)}), 500
 
 
 if __name__ == '__main__':
