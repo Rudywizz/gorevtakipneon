@@ -1,91 +1,91 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <title>{% block title %}Görev Takip Sistemi{% endblock %}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <title>{% block title %}Görev Takip Sistemi{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
 
-    <!-- Tema + UI İyileştirme CSS -->
-    <style>
-      /* ----- Genel geçişler ----- */
-      * { transition: color .15s ease, background-color .15s ease, border-color .15s ease; }
-      @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-      body { transition: background-color .2s ease, color .2s ease; }
+  <!-- Tema + UI İyileştirme CSS -->
+  <style>
+    /* ----- Genel geçişler ----- */
+    * { transition: color .15s ease, background-color .15s ease, border-color .15s ease; }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+    body { transition: background-color .2s ease, color .2s ease; }
 
-      /* ----- Koyu tema ----- */
-      body.dark-mode { background-color: #121212 !important; color: #f1f1f1 !important; }
-      body.dark-mode .navbar { background-color: #1f1f1f !important; }
+    /* ----- Koyu tema ----- */
+    body.dark-mode { background-color: #121212 !important; color: #f1f1f1 !important; }
+    body.dark-mode .navbar { background-color: #1f1f1f !important; }
 
-      body.dark-mode .card,
-      body.dark-mode .container,
-      body.dark-mode .table,
-      body.dark-mode .modal-content,
-      body.dark-mode .dropdown-menu {
-        background-color: #1e1e1e !important;
-        color: #f1f1f1 !important;
-        border-color: #444 !important;
-      }
-      body.dark-mode .table > :not(caption) > * > * {
-        background-color: #1f1f1f !important; color: #e8e8e8 !important; border-color: #444 !important;
-      }
-      body.dark-mode .table thead th { background-color: #242424 !important; color: #f1f1f1 !important; }
+    body.dark-mode .card,
+    body.dark-mode .container,
+    body.dark-mode .table,
+    body.dark-mode .modal-content,
+    body.dark-mode .dropdown-menu {
+      background-color: #1e1e1e !important;
+      color: #f1f1f1 !important;
+      border-color: #444 !important;
+    }
+    body.dark-mode .table > :not(caption) > * > * {
+      background-color: #1f1f1f !important; color: #e8e8e8 !important; border-color: #444 !important;
+    }
+    body.dark-mode .table thead th { background-color: #242424 !important; color: #f1f1f1 !important; }
 
-      /* Form elemanları */
-      body.dark-mode .form-control,
-      body.dark-mode .form-select,
-      body.dark-mode input,
-      body.dark-mode select,
-      body.dark-mode textarea {
-        background-color: #2a2a2a !important; color: #f1f1f1 !important; border: 1px solid #555 !important;
-      }
-      body.dark-mode input::placeholder, body.dark-mode textarea::placeholder { color: #aaa !important; }
-      body.dark-mode .form-select option { background-color: #2a2a2a; color: #f1f1f1; }
-      body.dark-mode .form-control:focus, body.dark-mode .form-select:focus {
-        background-color: #2a2a2a !important; color: #fff !important;
-        border-color: #6ea8fe !important; box-shadow: 0 0 0 .2rem rgba(13,110,253,.25) !important;
-      }
+    /* Form elemanları */
+    body.dark-mode .form-control,
+    body.dark-mode .form-select,
+    body.dark-mode input,
+    body.dark-mode select,
+    body.dark-mode textarea {
+      background-color: #2a2a2a !important; color: #f1f1f1 !important; border: 1px solid #555 !important;
+    }
+    body.dark-mode input::placeholder, body.dark-mode textarea::placeholder { color: #aaa !important; }
+    body.dark-mode .form-select option { background-color: #2a2a2a; color: #f1f1f1; }
+    body.dark-mode .form-control:focus, body.dark-mode .form-select:focus {
+      background-color: #2a2a2a !important; color: #fff !important;
+      border-color: #6ea8fe !important; box-shadow: 0 0 0 .2rem rgba(13,110,253,.25) !important;
+    }
 
-      /* Butonlar */
-      body.dark-mode .btn { border-color: #555 !important; }
-      body.dark-mode .btn-outline-light { color: #f1f1f1 !important; border-color: #777 !important; }
-      body.dark-mode .btn-outline-light:hover { background-color: #2a2a2a !important; }
-      body.dark-mode .btn-primary { background-color: #0d6efd !important; border-color: #0d6efd !important; }
+    /* Butonlar */
+    body.dark-mode .btn { border-color: #555 !important; }
+    body.dark-mode .btn-outline-light { color: #f1f1f1 !important; border-color: #777 !important; }
+    body.dark-mode .btn-outline-light:hover { background-color: #2a2a2a !important; }
+    body.dark-mode .btn-primary { background-color: #0d6efd !important; border-color: #0d6efd !important; }
 
-      /* Badge/alert kontrast */
-      body.dark-mode .badge, body.dark-mode .alert { color: #f1f1f1 !important; }
+    /* Badge/alert kontrast */
+    body.dark-mode .badge, body.dark-mode .alert { color: #f1f1f1 !important; }
 
-      /* ----- Kart & buton “elevation” ----- */
-      .card-elevate { border: 1px solid rgba(0,0,0,.06); box-shadow: 0 6px 18px rgba(0,0,0,.08); border-radius: 14px; }
-      .card-elevate:hover { box-shadow: 0 10px 24px rgba(0,0,0,.12); }
-      body.dark-mode .card-elevate { border-color: #333; box-shadow: 0 6px 18px rgba(0,0,0,.6); }
-      body.dark-mode .card-elevate:hover { box-shadow: 0 10px 28px rgba(0,0,0,.7); }
+    /* ----- Kart & buton “elevation” ----- */
+    .card-elevate { border: 1px solid rgba(0,0,0,.06); box-shadow: 0 6px 18px rgba(0,0,0,.08); border-radius: 14px; }
+    .card-elevate:hover { box-shadow: 0 10px 24px rgba(0,0,0,.12); }
+    body.dark-mode .card-elevate { border-color: #333; box-shadow: 0 6px 18px rgba(0,0,0,.6); }
+    body.dark-mode .card-elevate:hover { box-shadow: 0 10px 28px rgba(0,0,0,.7); }
 
-      .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
-      .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
-      .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
-      .btn-elevate:focus-visible { outline: none; box-shadow: 0 0 0 .22rem rgba(13,110,253,.35); }
+    .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
+    .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+    .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
+    .btn-elevate:focus-visible { outline: none; box-shadow: 0 0 0 .22rem rgba(13,110,253,.35); }
 
-      /* ----- Ripple animasyonu ----- */
-      .ripple-wrap { position: relative; overflow: hidden; }
-      .ripple { position: absolute; border-radius: 50%; transform: scale(0); opacity: .55; animation: ripple .5s ease-out; background: currentColor; pointer-events: none; }
-      @keyframes ripple { to { transform: scale(12); opacity: 0; } }
+    /* ----- Ripple animasyonu ----- */
+    .ripple-wrap { position: relative; overflow: hidden; }
+    .ripple { position: absolute; border-radius: 50%; transform: scale(0); opacity: .55; animation: ripple .5s ease-out; background: currentColor; pointer-events: none; }
+    @keyframes ripple { to { transform: scale(12); opacity: 0; } }
 
-      /* ----- Navbar linkleri: modern hover/active ----- */
-      .nav-link-modern { border-radius: 8px; padding: .5rem .75rem; }
-      .navbar-dark .nav-link-modern:hover { background: rgba(255,255,255,.12); }
-      .navbar-dark .nav-link-modern.active { background: rgba(255,255,255,.22); font-weight: 600; }
-      body.dark-mode .navbar .nav-link-modern:hover { background: rgba(255,255,255,.10); }
-      body.dark-mode .navbar .nav-link-modern.active { background: rgba(255,255,255,.18); }
+    /* ----- Navbar linkleri: modern hover/active ----- */
+    .nav-link-modern { border-radius: 8px; padding: .5rem .75rem; }
+    .navbar-dark .nav-link-modern:hover { background: rgba(255,255,255,.12); }
+    .navbar-dark .nav-link-modern.active { background: rgba(255,255,255,.22); font-weight: 600; }
+    body.dark-mode .navbar .nav-link-modern:hover { background: rgba(255,255,255,.10); }
+    body.dark-mode .navbar .nav-link-modern.active { background: rgba(255,255,255,.18); }
 
-      /* Tema butonu ikon dokunuşu */
-      #themeToggle i { transition: transform .18s ease; display: inline-block; }
-      #themeToggle:active i { transform: scale(.9) rotate(-8deg); }
-    </style>
+    /* Tema butonu ikon dokunuşu */
+    #themeToggle i { transition: transform .18s ease; display: inline-block; }
+    #themeToggle:active i { transform: scale(.9) rotate(-8deg); }
+  </style>
 </head>
 <body class="bg-light">
 
@@ -94,7 +94,7 @@
 
     <!-- LOGO + METİN -->
     <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
-      <img src="{{ url_for('static', filename='images/karacabey-logo.png') }}" alt="Karacabey Belediyesi" height="32" class="d-inline-block align-text-top">
+      <img src="{{ url_for('static', filename='images/karacabey-logo.png') }}" alt="Karacabey Belediyesi" height="32" class="d-inline-block align-text-top" />
       <span class="fw-semibold">BIM Görev Takip</span>
     </a>
 
@@ -132,6 +132,15 @@
               <i class="bi bi-graph-up-arrow me-1"></i> Raporlama
             </a>
           </li>
+
+          {% if session.get('role') == 'admin' %}
+          <li class="nav-item">
+            <a class="nav-link nav-link-modern {{ 'active' if request.endpoint == 'users_page' else '' }}"
+               href="{{ url_for('users_page') }}">
+              <i class="bi bi-people-fill me-1"></i> Kullanıcılar
+            </a>
+          </li>
+          {% endif %}
         </ul>
 
         <div class="d-flex align-items-center">
@@ -155,7 +164,7 @@
 </nav>
 
 <div class="container">
-    {% block content %}{% endblock %}
+  {% block content %}{% endblock %}
 </div>
 
 <!-- Bootstrap JS Bundle -->
@@ -201,10 +210,6 @@
       target.appendChild(ripple);
       setTimeout(() => ripple.remove(), 500);
     }, false);
-
-    // Eğer request.endpoint kullanmıyorsan, URL'ye göre aktif sınıfını atamak için alternatif:
-    // const path = location.pathname;
-    // document.querySelectorAll('.nav-link-modern').forEach(a => { if (a.getAttribute('href') === path) a.classList.add('active'); });
   });
 })();
 </script>

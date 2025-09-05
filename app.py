@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, make_response, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, make_response, jsonify, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
@@ -113,6 +113,11 @@ def paginate(query, page, per_page=10):
     return items, total, pages
 
 
+def require_admin():
+    if 'user_id' not in session or session.get("role") != "admin":
+        abort(403)
+
+
 # -------------------------------------------------
 # Routes
 # -------------------------------------------------
@@ -137,7 +142,6 @@ def register():
 
         except IntegrityError:
             db.session.rollback()
-            # Unique ihlali vb.
             return render_template('register.html', error="Bu kullanıcı adı zaten kayıtlı.")
 
         except DataError as e:
@@ -146,7 +150,6 @@ def register():
 
         except Exception as e:
             db.session.rollback()
-            # Diğer beklenmeyen hatayı da gösterelim (migration/kolon vb. için faydalı)
             return render_template('register.html', error=f"Kayıt sırasında hata: {e}")
 
     return render_template('register.html')
@@ -321,6 +324,45 @@ def delete_task(task_id):
         db.session.commit()
     return redirect(url_for('dashboard'))
 
+# -------------------------
+# Admin: Kullanıcı yönetimi
+# -------------------------
+@app.route('/users')
+def users_page():
+    require_admin()
+    users = User.query.order_by(User.id.asc()).all()
+    return render_template('users.html', users=users)
+
+@app.route('/users/<int:user_id>/make_admin', methods=['POST'])
+def users_make_admin(user_id):
+    require_admin()
+    u = User.query.get_or_404(user_id)
+    u.role = 'admin'
+    db.session.commit()
+    return redirect(url_for('users_page'))
+
+@app.route('/users/<int:user_id>/make_user', methods=['POST'])
+def users_make_user(user_id):
+    require_admin()
+    # Kendini user'a düşürmeyi engelle
+    if user_id == session.get('user_id'):
+        return "Kendi rolünüzü düşüremezsiniz.", 400
+    u = User.query.get_or_404(user_id)
+    u.role = 'user'
+    db.session.commit()
+    return redirect(url_for('users_page'))
+
+@app.route('/users/<int:user_id>/delete', methods=['POST'])
+def users_delete(user_id):
+    require_admin()
+    # Kendini silmeyi engelle
+    if user_id == session.get('user_id'):
+        return "Kendi hesabınızı silemezsiniz.", 400
+    u = User.query.get_or_404(user_id)
+    db.session.delete(u)
+    db.session.commit()
+    return redirect(url_for('users_page'))
+
 # Sağlık kontrolü
 @app.route('/health/db')
 def health_db():
@@ -330,6 +372,10 @@ def health_db():
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
 
+# Basit 403 sayfası
+@app.errorhandler(403)
+def forbidden(_):
+    return render_template("403.html"), 403
 
 if __name__ == '__main__':
     app.run(debug=True)
