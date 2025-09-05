@@ -14,14 +14,9 @@ from math import ceil
 # Flask & DB config
 # -------------------------------------------------
 app = Flask(__name__)
-
-# Güvenli anahtar – Render/Prod'da ENV’den al
 app.secret_key = os.getenv("SECRET_KEY", "gizli_anahtar")
 
-# Neon/Postgres bağlantısı (Render -> Environment'da ayarlanacak)
 DATABASE_URL = os.getenv("DATABASE_URL")
-
-# Yerelde ENV yoksa sqlite fallback
 if not DATABASE_URL:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'gorev_takip.db')}"
@@ -29,7 +24,6 @@ if not DATABASE_URL:
 app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-# Neon TLS ister; sslmode=require
 engine_opts = {"pool_pre_ping": True, "pool_recycle": 300}
 if DATABASE_URL.startswith("postgresql"):
     engine_opts["connect_args"] = {"sslmode": "require"}
@@ -77,10 +71,19 @@ class Task(db.Model):
 
 
 # -------------------------------------------------
-# Yardımcı fonksiyonlar
+# Yardımcılar
 # -------------------------------------------------
+@app.before_request
+def refresh_role():
+    """Kullanıcı girişliyse rol/username'i DB'den yenile."""
+    uid = session.get("user_id")
+    if uid:
+        u = User.query.get(uid)
+        if u:
+            session["role"] = u.role
+            session["username"] = u.username
+
 def apply_filters(query, user_id):
-    """URL parametrelerinden filtre uygula."""
     q = request.args.get("q", "").strip()
     status = request.args.get("status", "").strip()
     mine = request.args.get("mine") == "1"
@@ -88,23 +91,16 @@ def apply_filters(query, user_id):
 
     if q:
         like = f"%{q}%"
-        query = query.filter(or_(
-            Task.title.ilike(like),
-            Task.location.ilike(like),
-            Task.materials.ilike(like)
-        ))
-
+        query = query.filter(or_(Task.title.ilike(like),
+                                 Task.location.ilike(like),
+                                 Task.materials.ilike(like)))
     if status:
         query = query.filter(Task.status == status)
-
     if mine:
         query = query.filter(or_(Task.user_id == user_id, Task.assigned_to == user_id))
-
     if assigned.isdigit():
         query = query.filter(Task.assigned_to == int(assigned))
-
     return query
-
 
 def paginate(query, page, per_page=10):
     total = query.count()
@@ -112,11 +108,9 @@ def paginate(query, page, per_page=10):
     pages = ceil(total / per_page) if per_page else 1
     return items, total, pages
 
-
 def require_admin():
     if 'user_id' not in session or session.get("role") != "admin":
         abort(403)
-
 
 # -------------------------------------------------
 # Routes
@@ -132,26 +126,20 @@ def register():
         password_raw = request.form['password']
         if not username or not password_raw:
             return render_template('register.html', error="Kullanıcı adı ve şifre zorunludur.")
-
-        password = generate_password_hash(password_raw)
-
         try:
-            db.session.add(User(username=username, password=password))
+            user = User(username=username, password=generate_password_hash(password_raw))
+            db.session.add(user)
             db.session.commit()
             return redirect(url_for('login'))
-
         except IntegrityError:
             db.session.rollback()
             return render_template('register.html', error="Bu kullanıcı adı zaten kayıtlı.")
-
         except DataError as e:
             db.session.rollback()
             return render_template('register.html', error=f"Veri formatı hatası: {e.orig}")
-
         except Exception as e:
             db.session.rollback()
             return render_template('register.html', error=f"Kayıt sırasında hata: {e}")
-
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -159,13 +147,12 @@ def login():
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
-
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['role'] = user.role
+            session['username'] = user.username
             return redirect(url_for('dashboard'))
-
         return render_template('login.html', error="Kullanıcı adı veya şifre hatalı.")
     return render_template('login.html')
 
@@ -182,7 +169,7 @@ def dashboard():
     user_id = session['user_id']
     all_users = User.query.order_by(User.username.asc()).all()
 
-    if request.method == 'POST':
+    if request.method == 'POST']:
         t = Task(
             user_id=user_id,
             title=request.form['title'].strip(),
@@ -197,7 +184,6 @@ def dashboard():
         db.session.commit()
         return redirect(url_for('dashboard', **request.args))
 
-    # GET → filtre + sayfalama
     base = Task.query.order_by(Task.id.desc())
     filtered = apply_filters(base, user_id)
     page = max(int(request.args.get("page", 1)), 1)
@@ -244,43 +230,37 @@ def report():
 def export_excel():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
     tasks = Task.query.filter_by(completed="Evet").order_by(Task.id.desc()).all()
     rows = [[
         t.title, t.location, t.date, t.materials, t.needs_support, t.status,
         t.assigner_name, t.assignee_name, t.completion_note or ""
     ] for t in tasks]
-
     df = pd.DataFrame(rows, columns=[
         "Görev", "Yer", "Tarih", "Malzemeler", "Destek", "Durum",
         "Gorevi_Giren", "Atanan", "Aciklama"
     ])
-
     output = BytesIO()
     with pd.ExcelWriter(output, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Tamamlanan Görevler")
     output.seek(0)
-
-    response = make_response(output.read())
-    response.headers["Content-Disposition"] = "attachment; filename=rapor.xlsx"
-    response.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    return response
+    resp = make_response(output.read())
+    resp.headers["Content-Disposition"] = "attachment; filename=rapor.xlsx"
+    resp.headers["Content-Type"] = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    return resp
 
 @app.route('/export/pdf')
 def export_pdf():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-
     tasks = Task.query.filter_by(completed="Evet").order_by(Task.id.desc()).all()
     rendered = render_template("report_pdf.html", tasks=tasks)
     pdf_io = BytesIO()
     pisa.CreatePDF(rendered, dest=pdf_io)
     pdf_io.seek(0)
-
-    response = make_response(pdf_io.read())
-    response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = "attachment; filename=rapor.pdf"
-    return response
+    resp = make_response(pdf_io.read())
+    resp.headers["Content-Type"] = "application/pdf"
+    resp.headers["Content-Disposition"] = "attachment; filename=rapor.pdf"
+    return resp
 
 @app.route('/accept_task/<int:task_id>', methods=['POST'])
 def accept_task(task_id):
@@ -301,14 +281,12 @@ def complete_task(task_id):
     task = Task.query.filter_by(id=task_id, assigned_to=user_id).first()
     if not task:
         return redirect(url_for('assigned_tasks'))
-
     if request.method == 'POST':
         task.completed = "Evet"
         task.completion_note = request.form['note'].strip()
         task.status = "Tamamlandi"
         db.session.commit()
         return redirect(url_for('assigned_tasks'))
-
     return render_template('complete_task.html', task_id=task_id)
 
 @app.route('/delete_task/<int:task_id>', methods=['POST'])
@@ -317,7 +295,6 @@ def delete_task(task_id):
         return redirect(url_for('login'))
     user_id = session['user_id']
     role = session.get("role", "user")
-
     task = Task.query.filter_by(id=task_id).first()
     if task and (task.user_id == user_id or role == "admin"):
         db.session.delete(task)
@@ -327,41 +304,39 @@ def delete_task(task_id):
 # -------------------------
 # Admin: Kullanıcı yönetimi
 # -------------------------
-@app.route('/users')
-def users_page():
+@app.route('/admin/users')
+def admin_users():
     require_admin()
     users = User.query.order_by(User.id.asc()).all()
     return render_template('users.html', users=users)
 
-@app.route('/users/<int:user_id>/make_admin', methods=['POST'])
-def users_make_admin(user_id):
+@app.route('/admin/users/<int:user_id>/make_admin', methods=['POST'])
+def admin_make_admin(user_id):
     require_admin()
     u = User.query.get_or_404(user_id)
     u.role = 'admin'
     db.session.commit()
-    return redirect(url_for('users_page'))
+    return redirect(url_for('admin_users'))
 
-@app.route('/users/<int:user_id>/make_user', methods=['POST'])
-def users_make_user(user_id):
+@app.route('/admin/users/<int:user_id>/make_user', methods=['POST'])
+def admin_make_user(user_id):
     require_admin()
-    # Kendini user'a düşürmeyi engelle
     if user_id == session.get('user_id'):
         return "Kendi rolünüzü düşüremezsiniz.", 400
     u = User.query.get_or_404(user_id)
     u.role = 'user'
     db.session.commit()
-    return redirect(url_for('users_page'))
+    return redirect(url_for('admin_users'))
 
-@app.route('/users/<int:user_id>/delete', methods=['POST'])
-def users_delete(user_id):
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+def admin_delete_user(user_id):
     require_admin()
-    # Kendini silmeyi engelle
     if user_id == session.get('user_id'):
         return "Kendi hesabınızı silemezsiniz.", 400
     u = User.query.get_or_404(user_id)
     db.session.delete(u)
     db.session.commit()
-    return redirect(url_for('users_page'))
+    return redirect(url_for('admin_users'))
 
 # Sağlık kontrolü
 @app.route('/health/db')
@@ -372,7 +347,7 @@ def health_db():
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
 
-# Basit 403 sayfası
+# 403
 @app.errorhandler(403)
 def forbidden(_):
     return render_template("403.html"), 403
