@@ -30,10 +30,16 @@
       color: #f1f1f1 !important;
       border-color: #444 !important;
     }
+    body.dark-mode .dropdown-menu { box-shadow: 0 8px 24px rgba(0,0,0,.4); }
     body.dark-mode .table > :not(caption) > * > * {
       background-color: #1f1f1f !important; color: #e8e8e8 !important; border-color: #444 !important;
     }
-    body.dark-mode .table thead th { background-color: #242424 !important; color: #f1f1f1 !important; }
+    /* .table-light başlıklar koyu temada da koyu kalıyordu, düzeltildi */
+    body.dark-mode .table thead th,
+    body.dark-mode .table-light th,
+    body.dark-mode .table-light td {
+      background-color: #242424 !important; color: #f1f1f1 !important;
+    }
 
     /* Form elemanları */
     body.dark-mode .form-control,
@@ -51,6 +57,10 @@
     }
 
     /* Butonlar */
+    .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
+    .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+    .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
+    .btn-elevate:focus-visible { outline: none; box-shadow: 0 0 0 .22rem rgba(13,110,253,.35); }
     body.dark-mode .btn { border-color: #555 !important; }
     body.dark-mode .btn-outline-light { color: #f1f1f1 !important; border-color: #777 !important; }
     body.dark-mode .btn-outline-light:hover { background-color: #2a2a2a !important; }
@@ -59,16 +69,11 @@
     /* Badge/alert kontrast */
     body.dark-mode .badge, body.dark-mode .alert { color: #f1f1f1 !important; }
 
-    /* ----- Kart & buton “elevation” ----- */
+    /* ----- Kart “elevation” ----- */
     .card-elevate { border: 1px solid rgba(0,0,0,.06); box-shadow: 0 6px 18px rgba(0,0,0,.08); border-radius: 14px; }
     .card-elevate:hover { box-shadow: 0 10px 24px rgba(0,0,0,.12); }
     body.dark-mode .card-elevate { border-color: #333; box-shadow: 0 6px 18px rgba(0,0,0,.6); }
     body.dark-mode .card-elevate:hover { box-shadow: 0 10px 28px rgba(0,0,0,.7); }
-
-    .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
-    .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
-    .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
-    .btn-elevate:focus-visible { outline: none; box-shadow: 0 0 0 .22rem rgba(13,110,253,.35); }
 
     /* ----- Ripple animasyonu ----- */
     .ripple-wrap { position: relative; overflow: hidden; }
@@ -143,17 +148,20 @@
           {% endif %}
         </ul>
 
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2">
           {% if session.get('username') %}
-            <span class="navbar-text text-white me-3">
+            <span class="navbar-text text-white me-2">
               <i class="bi bi-person-circle me-1"></i> <strong>{{ session['username'] }}</strong>
+              {% if session.get('role') == 'admin' %}
+                <span class="badge bg-warning text-dark ms-2">Admin</span>
+              {% endif %}
             </span>
           {% endif %}
           <a class="btn btn-outline-light btn-elevate ripple-wrap" href="{{ url_for('logout') }}">
             <i class="bi bi-box-arrow-right me-1"></i> Çıkış Yap
           </a>
           <!-- Tema Toggle Butonu -->
-          <button id="themeToggle" class="btn btn-outline-light btn-elevate ripple-wrap ms-2" type="button" aria-label="Tema Değiştir">
+          <button id="themeToggle" class="btn btn-outline-light btn-elevate ripple-wrap" type="button" aria-label="Tema Değiştir">
             <i class="bi bi-moon-fill"></i>
           </button>
         </div>
@@ -187,7 +195,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById('themeToggle');
     if (btn) {
-      const setIcon = () => { btn.innerHTML = body.classList.contains('dark-mode') ? '<i class="bi bi-sun-fill"></i>' : '<i class="bi bi-moon-fill"></i>'; };
+      const setIcon = () => {
+        btn.innerHTML = body.classList.contains('dark-mode')
+          ? '<i class="bi bi-sun-fill"></i>'
+          : '<i class="bi bi-moon-fill"></i>';
+      };
       setIcon();
       btn.addEventListener('click', function () {
         body.classList.toggle('dark-mode');
