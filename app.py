@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from sqlalchemy import or_, text
+from sqlalchemy.exc import IntegrityError, DataError
 import os
 import pandas as pd
 from io import BytesIO
@@ -123,14 +124,31 @@ def index():
 def register():
     if request.method == 'POST':
         username = request.form['username'].strip()
-        password = generate_password_hash(request.form['password'])
+        password_raw = request.form['password']
+        if not username or not password_raw:
+            return render_template('register.html', error="Kullanıcı adı ve şifre zorunludur.")
+
+        password = generate_password_hash(password_raw)
+
         try:
             db.session.add(User(username=username, password=password))
             db.session.commit()
-        except Exception:
+            return redirect(url_for('login'))
+
+        except IntegrityError:
             db.session.rollback()
-            return "Kullanıcı adı zaten var."
-        return redirect(url_for('login'))
+            # Unique ihlali vb.
+            return render_template('register.html', error="Bu kullanıcı adı zaten kayıtlı.")
+
+        except DataError as e:
+            db.session.rollback()
+            return render_template('register.html', error=f"Veri formatı hatası: {e.orig}")
+
+        except Exception as e:
+            db.session.rollback()
+            # Diğer beklenmeyen hatayı da gösterelim (migration/kolon vb. için faydalı)
+            return render_template('register.html', error=f"Kayıt sırasında hata: {e}")
+
     return render_template('register.html')
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -138,12 +156,14 @@ def login():
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
+
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
             session['role'] = user.role
             return redirect(url_for('dashboard'))
-        return "Hatalı giriş"
+
+        return render_template('login.html', error="Kullanıcı adı veya şifre hatalı.")
     return render_template('login.html')
 
 @app.route('/logout')
@@ -180,17 +200,19 @@ def dashboard():
     page = max(int(request.args.get("page", 1)), 1)
     tasks, total, pages = paginate(filtered, page, per_page=10)
 
-    return render_template('dashboard.html',
-                           tasks=tasks,
-                           all_users=all_users,
-                           current_user=user_id,
-                           total=total,
-                           pages=pages,
-                           page=page,
-                           q=request.args.get("q", ""),
-                           f_status=request.args.get("status", ""),
-                           mine=request.args.get("mine") == "1",
-                           f_assigned=request.args.get("assigned", ""))
+    return render_template(
+        'dashboard.html',
+        tasks=tasks,
+        all_users=all_users,
+        current_user=user_id,
+        total=total,
+        pages=pages,
+        page=page,
+        q=request.args.get("q", ""),
+        f_status=request.args.get("status", ""),
+        mine=request.args.get("mine") == "1",
+        f_assigned=request.args.get("assigned", "")
+    )
 
 @app.route('/assigned_tasks')
 def assigned_tasks():
