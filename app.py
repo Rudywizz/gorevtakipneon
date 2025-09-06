@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, m
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from sqlalchemy import or_, text
+from sqlalchemy import or_, text, inspect
 from sqlalchemy.exc import IntegrityError, DataError
 from functools import wraps  # geçici admin rotası için
 import os
@@ -22,14 +22,10 @@ if not DATABASE_URL:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'gorev_takip.db')}"
 
-# psycopg3 (SQLAlchemy 2.x) için sürücü normalizasyonu:
-# Render/ENV "postgresql://..." veriyorsa "postgresql+psycopg://..." yapıyoruz.
+# psycopg3 normalizasyonu
 _db_url_final = DATABASE_URL or ""
-
 if _db_url_final.startswith("postgresql://"):
     _db_url_final = _db_url_final.replace("postgresql://", "postgresql+psycopg://", 1)
-
-# Neon güvenliği: sslmode yoksa ekle
 if _db_url_final.startswith("postgresql+psycopg://") and "sslmode=" not in _db_url_final:
     sep = "&" if "?" in _db_url_final else "?"
     _db_url_final = f"{_db_url_final}{sep}sslmode=require"
@@ -374,7 +370,6 @@ def make_me_admin_once():
     if not user:
         abort(404)
 
-    # İsteğe bağlı: sistemde zaten admin varsa kilitle
     already = User.query.filter_by(role="admin").first()
     if already:
         return "Admin zaten var. Bu uç nokta kilitlendi.", 409
@@ -382,6 +377,26 @@ def make_me_admin_once():
     user.role = "admin"
     db.session.commit()
     return "Artık adminsiniz. Bu rotayı ve PROMOTE_TOKEN'ı KALDIRIN!", 200
+
+# -------------------------
+# TEŞHİS: Alembic ve tablo durumu
+# -------------------------
+from alembic.runtime.migration import MigrationContext
+from alembic.script import ScriptDirectory
+from alembic.config import Config
+
+@app.route("/health/alembic")
+def health_alembic():
+    out = {}
+    with db.engine.connect() as conn:
+        context = MigrationContext.configure(conn)
+        out["db_current_rev"] = context.get_current_revision()
+    cfg = Config("alembic.ini")
+    script = ScriptDirectory.from_config(cfg)
+    out["code_head_rev"] = script.get_current_head()
+    insp = inspect(db.engine)
+    out["tables"] = sorted(insp.get_table_names())
+    return jsonify(out), 200
 
 # Sağlık kontrolü
 @app.route('/health/db')
@@ -392,16 +407,22 @@ def health_db():
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
 
-# Bağlantı dizesini görmek için (şifre maskeli) TEŞHİS ROTASI
+# Bağlantı dizesini görmek için (şifre maskeli)
 @app.route("/health/db_url")
 def health_db_url():
     url = app.config.get("SQLALCHEMY_DATABASE_URI", "not-set")
-    # kullanıcı:şifre kısmını maskele
     safe = url
     if "://" in url and "@" in url:
         prefix, rest = url.split("://", 1)
         safe = f"{prefix}://****:****@" + rest.split("@", 1)[1]
     return jsonify({"db": safe}), 200
+
+# (İSTEĞE BAĞLI) bir kerelik bootstrap — AUTO_BOOTSTRAP=1 ise tablo yoksa create_all
+with app.app_context():
+    if os.getenv("AUTO_BOOTSTRAP") == "1":
+        insp = inspect(db.engine)
+        if not insp.has_table("users") or not insp.has_table("tasks"):
+            db.create_all()
 
 # 403
 @app.errorhandler(403)
