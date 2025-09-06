@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError, DataError
-from functools import wraps  # <-- eklendi (geçici admin rotası için)
+from functools import wraps  # geçici admin rotası için
 import os
 import pandas as pd
 from io import BytesIO
@@ -24,9 +24,15 @@ if not DATABASE_URL:
 
 # psycopg3 (SQLAlchemy 2.x) için sürücü normalizasyonu:
 # Render/ENV "postgresql://..." veriyorsa "postgresql+psycopg://..." yapıyoruz.
-_db_url_final = DATABASE_URL
-if _db_url_final and _db_url_final.startswith("postgresql://"):
+_db_url_final = DATABASE_URL or ""
+
+if _db_url_final.startswith("postgresql://"):
     _db_url_final = _db_url_final.replace("postgresql://", "postgresql+psycopg://", 1)
+
+# Neon güvenliği: sslmode yoksa ekle
+if _db_url_final.startswith("postgresql+psycopg://") and "sslmode=" not in _db_url_final:
+    sep = "&" if "?" in _db_url_final else "?"
+    _db_url_final = f"{_db_url_final}{sep}sslmode=require"
 
 app.config["SQLALCHEMY_DATABASE_URI"] = _db_url_final
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
@@ -385,6 +391,17 @@ def health_db():
         return jsonify({"status": "ok"}), 200
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
+
+# Bağlantı dizesini görmek için (şifre maskeli) TEŞHİS ROTASI
+@app.route("/health/db_url")
+def health_db_url():
+    url = app.config.get("SQLALCHEMY_DATABASE_URI", "not-set")
+    # kullanıcı:şifre kısmını maskele
+    safe = url
+    if "://" in url and "@" in url:
+        prefix, rest = url.split("://", 1)
+        safe = f"{prefix}://****:****@" + rest.split("@", 1)[1]
+    return jsonify({"db": safe}), 200
 
 # 403
 @app.errorhandler(403)
