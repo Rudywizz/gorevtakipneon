@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Görevi Tamamla{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h4 class="card-title mb-3">Görevi Tamamla</h4>
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="note" class="form-label fw-bold">Açıklama / Yapılan İş</label>
+                    <textarea name="note" id="note" rows="5" class="form-control" placeholder="Yapılan iş hakkında açıklama girin..." required></textarea>
+                </div>
+                <div class="d-flex justify-content-start">
+                    <button type="submit" class="btn btn-success">Görevi Sonlandır</button>
+                    <a href="{{ url_for('assigned_tasks') }}" class="btn btn-outline-secondary ms-2">Vazgeç</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
