@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from sqlalchemy import or_, text
 from sqlalchemy.exc import IntegrityError, DataError
+from functools import wraps  # geçici admin rotası için
 import os
 import pandas as pd
 from io import BytesIO
@@ -21,11 +22,23 @@ if not DATABASE_URL:
     BASE_DIR = os.path.abspath(os.path.dirname(__file__))
     DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, 'gorev_takip.db')}"
 
-app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+# psycopg3 (SQLAlchemy 2.x) için sürücü normalizasyonu:
+# Render/ENV "postgresql://..." veriyorsa "postgresql+psycopg://..." yapıyoruz.
+_db_url_final = DATABASE_URL or ""
+
+if _db_url_final.startswith("postgresql://"):
+    _db_url_final = _db_url_final.replace("postgresql://", "postgresql+psycopg://", 1)
+
+# Neon güvenliği: sslmode yoksa ekle
+if _db_url_final.startswith("postgresql+psycopg://") and "sslmode=" not in _db_url_final:
+    sep = "&" if "?" in _db_url_final else "?"
+    _db_url_final = f"{_db_url_final}{sep}sslmode=require"
+
+app.config["SQLALCHEMY_DATABASE_URI"] = _db_url_final
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 engine_opts = {"pool_pre_ping": True, "pool_recycle": 300}
-if DATABASE_URL.startswith("postgresql"):
+if _db_url_final.startswith("postgresql+psycopg://"):
     engine_opts["connect_args"] = {"sslmode": "require"}
 app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_opts
 
@@ -338,6 +351,38 @@ def admin_delete_user(user_id):
     db.session.commit()
     return redirect(url_for('admin_users'))
 
+# -------------------------
+# Tek seferlik admin terfisi (GÜVENLİK: iş bitince SİL!)
+# -------------------------
+def require_login(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if "user_id" not in session:
+            return redirect(url_for("login"))
+        return fn(*args, **kwargs)
+    return wrapper
+
+@app.route("/_once/make_me_admin", methods=["POST"])
+@require_login
+def make_me_admin_once():
+    token = request.headers.get("X-PROMOTE-TOKEN") or request.args.get("token")
+    expected = os.getenv("PROMOTE_TOKEN")
+    if not expected or token != expected:
+        abort(403)
+
+    user = db.session.get(User, session["user_id"])
+    if not user:
+        abort(404)
+
+    # İsteğe bağlı: sistemde zaten admin varsa kilitle
+    already = User.query.filter_by(role="admin").first()
+    if already:
+        return "Admin zaten var. Bu uç nokta kilitlendi.", 409
+
+    user.role = "admin"
+    db.session.commit()
+    return "Artık adminsiniz. Bu rotayı ve PROMOTE_TOKEN'ı KALDIRIN!", 200
+
 # Sağlık kontrolü
 @app.route('/health/db')
 def health_db():
@@ -346,6 +391,17 @@ def health_db():
         return jsonify({"status": "ok"}), 200
     except Exception as e:
         return jsonify({"status": "error", "detail": str(e)}), 500
+
+# Bağlantı dizesini görmek için (şifre maskeli) TEŞHİS ROTASI
+@app.route("/health/db_url")
+def health_db_url():
+    url = app.config.get("SQLALCHEMY_DATABASE_URI", "not-set")
+    # kullanıcı:şifre kısmını maskele
+    safe = url
+    if "://" in url and "@" in url:
+        prefix, rest = url.split("://", 1)
+        safe = f"{prefix}://****:****@" + rest.split("@", 1)[1]
+    return jsonify({"db": safe}), 200
 
 # 403
 @app.errorhandler(403)
