@@ -34,20 +34,20 @@
             </td>
             <td class="d-flex gap-2">
               {% if u.role != 'admin' %}
-                <form method="post" action="{{ url_for('users_make_admin', user_id=u.id) }}">
+                <form method="post" action="{{ url_for('admin_make_admin', user_id=u.id) }}">
                   <button class="btn btn-sm btn-outline-danger">Admin Yap</button>
                 </form>
               {% endif %}
 
               {% if u.role != 'user' %}
-                <form method="post" action="{{ url_for('users_make_user', user_id=u.id) }}">
+                <form method="post" action="{{ url_for('admin_make_user', user_id=u.id) }}">
                   <button class="btn btn-sm btn-outline-secondary">User Yap</button>
                 </form>
               {% endif %}
 
               {% if u.id != session.get('user_id') %}
                 <form method="post"
-                      action="{{ url_for('users_delete', user_id=u.id) }}"
+                      action="{{ url_for('admin_delete_user', user_id=u.id) }}"
                       onsubmit="return confirm('Bu kullanıcıyı silmek istiyor musunuz?');">
                   <button class="btn btn-sm btn-outline-danger">Sil</button>
                 </form>
