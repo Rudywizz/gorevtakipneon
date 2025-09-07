@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+
+{% block title %}Kayıt Ol{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-5">
+    <div class="card shadow">
+      <div class="card-body">
+        <h3 class="card-title text-center mb-4">Kayıt Ol</h3>
+
+        {# -- Hata / bilgi mesajları -- #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, msg in messages %}
+              <div class="alert alert-{{ 'danger' if category == 'error' else category }} mb-3" role="alert">
+                {{ msg }}
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        {% if error %}
+          <div class="alert alert-danger mb-3" role="alert">
+            {{ error }}
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{{ url_for('register') }}" novalidate>
+          {# E-posta alanı: sadece DB'de email kolonu varsa zorunlu göster #}
+          {% if has_email_col %}
+          <div class="mb-3">
+            <label for="email" class="form-label">E-posta</label>
+            <input
+              type="email"
+              class="form-control"
+              id="email"
+              name="email"
+              autocomplete="email"
+              required
+              maxlength="200"
+              placeholder="ornek@karacabey.bel.tr"
+              value="{{ request.form.email or '' }}"
+            >
+          </div>
+          {% endif %}
+
+          <div class="mb-3">
+            <label for="username" class="form-label">Kullanıcı Adı</label>
+            <input
+              type="text"
+              class="form-control"
+              id="username"
+              name="username"
+              required
+              minlength="3"
+              maxlength="80"
+              autocomplete="username"
+              placeholder="kullanici.adi"
+              value="{{ request.form.username or '' }}"
+            >
+          </div>
+
+          <div class="mb-2">
+            <label for="password" class="form-label">Şifre</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              name="password"
+              required
+              minlength="8"
+              autocomplete="new-password"
+              placeholder="••••••••"
+            >
+          </div>
+          <small class="text-muted d-block mb-3">
+            Şifre en az 8 karakter olmalı ve harf + rakam içermelidir.
+          </small>
+
+          <div class="d-grid">
+            <button type="submit" class="btn btn-success">Kayıt Ol</button>
+          </div>
+        </form>
+
+        <div class="text-center mt-3">
+          <small>Zaten bir hesabınız var mı? <a href="{{ url_for('login') }}">Giriş Yap</a></small>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

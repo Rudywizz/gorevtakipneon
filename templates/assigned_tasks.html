@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Bana Atanan Görevler{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-3">Bana Atanan Görevler</h3>
+
+    <!-- Bekleyen Görevler -->
+    <h5 class="text-secondary">Bekleyen Görevler</h5>
+    {% set waiting_tasks = tasks
+        | selectattr("accepted", "equalto", "Bekliyor")
+        | selectattr("assigned_to", "equalto", current_user)
+        | list %}
+    {% if waiting_tasks %}
+        <div class="table-responsive mb-5">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Görev</th>
+                        <th>Yer</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th>Gerekli Malzeme</th>
+                        <th>Destek Birimi</th>
+                        <th>Görevi Giren</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in waiting_tasks %}
+                        <tr>
+                            <td>{{ task["title"] }}</td>
+                            <td>{{ task["location"] }}</td>
+                            <td>{{ task["date"] }}</td>
+                            <td>{{ task["status"] }}</td>
+                            <td>{{ task["materials"] }}</td>
+                            <td>{{ task["needs_support"] }}</td>
+                            <td>{{ task["assigner_name"] }}</td>
+                            <td>
+                                <form method="POST" action="{{ url_for('accept_task', task_id=task["id"]) }}">
+                                    <button type="submit" class="btn btn-sm btn-success">Kabul Et</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">Bekleyen görev bulunmamaktadır.</p>
+    {% endif %}
+
+    <!-- Kabul Edilen Görevler -->
+    <h5 class="text-secondary">Kabul Edilen Görevler</h5>
+    {% set accepted_tasks = tasks
+        | selectattr("accepted", "equalto", "Evet")
+        | selectattr("completed", "equalto", "Hayir")
+        | selectattr("assigned_to", "equalto", current_user)
+        | list %}
+    {% if accepted_tasks %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Görev</th>
+                        <th>Yer</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th>Gerekli Malzeme</th>
+                        <th>Destek Birimi</th>
+                        <th>Görevi Giren</th>
+                        <th>İşlem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in accepted_tasks %}
+                        <tr>
+                            <td>{{ task["title"] }}</td>
+                            <td>{{ task["location"] }}</td>
+                            <td>{{ task["date"] }}</td>
+                            <td>{{ task["status"] }}</td>
+                            <td>{{ task["materials"] }}</td>
+                            <td>{{ task["needs_support"] }}</td>
+                            <td>{{ task["assigner_name"] }}</td>
+                            <td>
+                                <a href="{{ url_for('complete_task', task_id=task["id"]) }}" class="btn btn-sm btn-outline-primary">İşi Sonlandır</a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">Kabul edilmiş ancak tamamlanmamış görev bulunmamaktadır.</p>
+    {% endif %}
+</div>
+{% endblock %}
