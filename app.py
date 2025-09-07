@@ -2,22 +2,32 @@ from flask import Flask, render_template, request, redirect, url_for, session, m
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
+<<<<<<< HEAD
 from sqlalchemy import or_, text, inspect  # func yerine db.func kullandığımız için ek import gerekmedi
 from sqlalchemy.exc import IntegrityError, DataError
 from functools import wraps  # geçici admin rotası için
 import os
 import re
+=======
+from sqlalchemy import or_, text, inspect
+from sqlalchemy.exc import IntegrityError, DataError
+from functools import wraps  # geçici admin rotası için
+import os
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 import pandas as pd
 from io import BytesIO
 from xhtml2pdf import pisa
 from math import ceil
 
+<<<<<<< HEAD
 # --- yeni: mail & token yardımcıları ---
 import smtplib
 from email.mime.text import MIMEText
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 import secrets
 
+=======
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 # -------------------------------------------------
 # Flask & DB config
 # -------------------------------------------------
@@ -48,6 +58,7 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = engine_opts
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
+<<<<<<< HEAD
 # --- Mail ENV (Gmail uygulama şifresi) ---
 MAIL_USER = os.getenv("MAIL_USER")  # örn: you@gmail.com
 MAIL_PASS = os.getenv("MAIL_PASS")  # 16 haneli uygulama şifresi
@@ -88,6 +99,8 @@ def parse_reset_token(token: str, max_age_seconds: int = 1800) -> int | None:
 # Basit e-posta regex
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
+=======
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 # -------------------------------------------------
 # Modeller
 # -------------------------------------------------
@@ -95,14 +108,21 @@ class User(db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+<<<<<<< HEAD
     # Migration’dan sonra NOT NULL + UNIQUE yapman önerilir.
     email = db.Column(db.String(200), unique=True)
+=======
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
     password = db.Column(db.String(200), nullable=False)
     role = db.Column(db.String(20), default="user")  # user / admin
 
     tasks_created = db.relationship("Task", foreign_keys="Task.user_id", backref="assigner", lazy=True)
     tasks_assigned = db.relationship("Task", foreign_keys="Task.assigned_to", backref="assignee", lazy=True)
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 class Task(db.Model):
     __tablename__ = "tasks"
     id = db.Column(db.Integer, primary_key=True)
@@ -126,6 +146,10 @@ class Task(db.Model):
     def assignee_name(self):
         return self.assignee.username if self.assignee else ""
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 # -------------------------------------------------
 # Yardımcılar
 # -------------------------------------------------
@@ -177,6 +201,7 @@ def index():
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
+<<<<<<< HEAD
     # tabloda email kolonu var mı?
     has_email_col = any(c.name == "email" for c in User.__table__.columns)
 
@@ -225,12 +250,39 @@ def register():
 
     # GET
     return render_template('register.html', has_email_col=has_email_col)
+=======
+    if request.method == 'POST':
+        username = request.form['username'].strip()
+        password_raw = request.form['password']
+        if not username or not password_raw:
+            return render_template('register.html', error="Kullanıcı adı ve şifre zorunludur.")
+        try:
+            user = User(username=username, password=generate_password_hash(password_raw))
+            db.session.add(user)
+            db.session.commit()
+            return redirect(url_for('login'))
+        except IntegrityError:
+            db.session.rollback()
+            return render_template('register.html', error="Bu kullanıcı adı zaten kayıtlı.")
+        except DataError as e:
+            db.session.rollback()
+            return render_template('register.html', error=f"Veri formatı hatası: {e.orig}")
+        except Exception as e:
+            db.session.rollback()
+            return render_template('register.html', error=f"Kayıt sırasında hata: {e}")
+    return render_template('register.html')
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
+<<<<<<< HEAD
         username = (request.form.get('username') or "").strip()
         password = request.form.get('password') or ""
+=======
+        username = request.form['username'].strip()
+        password = request.form['password']
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
         user = User.query.filter_by(username=username).first()
         if user and check_password_hash(user.password, password):
             session['user_id'] = user.id
@@ -240,6 +292,7 @@ def login():
         return render_template('login.html', error="Kullanıcı adı veya şifre hatalı.")
     return render_template('login.html')
 
+<<<<<<< HEAD
 # --- Şifre sıfırlama: e-posta ile ---
 @app.route("/forgot_password", methods=["GET", "POST"])
 def forgot_password():
@@ -296,6 +349,8 @@ def reset_password(token):
         return render_template("reset_password.html", message="Şifren güncellendi. Giriş yapabilirsin.")
     return render_template("reset_password.html")
 
+=======
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 @app.route('/logout')
 def logout():
     session.clear()
@@ -496,12 +551,24 @@ def make_me_admin_once():
     expected = os.getenv("PROMOTE_TOKEN")
     if not expected or token != expected:
         abort(403)
+<<<<<<< HEAD
     user = db.session.get(User, session["user_id"])
     if not user:
         abort(404)
     already = User.query.filter_by(role="admin").first()
     if already:
         return "Admin zaten var. Bu uç nokta kilitlendi.", 409
+=======
+
+    user = db.session.get(User, session["user_id"])
+    if not user:
+        abort(404)
+
+    already = User.query.filter_by(role="admin").first()
+    if already:
+        return "Admin zaten var. Bu uç nokta kilitlendi.", 409
+
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
     user.role = "admin"
     db.session.commit()
     return "Artık adminsiniz. Bu rotayı ve PROMOTE_TOKEN'ı KALDIRIN!", 200

@@ -27,6 +27,7 @@
         {% endif %}
 
         <form method="POST" action="{{ url_for('register') }}" novalidate>
+<<<<<<< HEAD
           {# E-posta alanı: sadece DB'de email kolonu varsa zorunlu göster #}
           {% if has_email_col %}
           <div class="mb-3">
@@ -45,6 +46,8 @@
           </div>
           {% endif %}
 
+=======
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
           <div class="mb-3">
             <label for="username" class="form-label">Kullanıcı Adı</label>
             <input
@@ -57,7 +60,10 @@
               maxlength="80"
               autocomplete="username"
               placeholder="kullanici.adi"
+<<<<<<< HEAD
               value="{{ request.form.username or '' }}"
+=======
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
             >
           </div>
 
@@ -69,14 +75,22 @@
               id="password"
               name="password"
               required
+<<<<<<< HEAD
               minlength="8"
+=======
+              minlength="6"
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
               autocomplete="new-password"
               placeholder="••••••••"
             >
           </div>
+<<<<<<< HEAD
           <small class="text-muted d-block mb-3">
             Şifre en az 8 karakter olmalı ve harf + rakam içermelidir.
           </small>
+=======
+          <small class="text-muted d-block mb-3">Şifre en az 6 karakter olmalı.</small>
+>>>>>>> 71b0146200203c78a153b6a5e3b20bfbf38d4e24
 
           <div class="d-grid">
             <button type="submit" class="btn btn-success">Kayıt Ol</button>
