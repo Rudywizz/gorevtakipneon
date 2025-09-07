@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+
+{% block title %}Görev Paneli{% endblock %}
+
+{% block content %}
+<div class="row">
+  <!-- Sol: Görev Ekleme -->
+  <div class="col-md-6">
+    <div class="card shadow mb-4">
+      <div class="card-body">
+        <h4 class="card-title mb-4">Yeni Görev Ekle</h4>
+
+        <form method="POST" action="{{ url_for('dashboard') }}">
+          <div class="mb-3">
+            <label for="title" class="form-label">Görev Adı</label>
+            <input type="text" class="form-control" id="title" name="title" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="location" class="form-label">Görev Yeri</label>
+            <input type="text" class="form-control" id="location" name="location">
+          </div>
+
+          <div class="mb-3">
+            <label for="materials" class="form-label">Gerekli Malzemeler</label>
+            <input type="text" class="form-control" id="materials" name="materials">
+          </div>
+
+          <div class="mb-3">
+            <label for="date" class="form-label">Planlanan Tarih</label>
+            <input type="date" class="form-control" id="date" name="date">
+          </div>
+
+          <div class="mb-3">
+            <label for="needs_support" class="form-label">Destek Birimi (varsa)</label>
+            <input type="text" class="form-control" id="needs_support" name="needs_support">
+          </div>
+
+          <div class="mb-3">
+            <label for="assigned_to" class="form-label">Görevi Atayacağınız Kişi</label>
+            <select class="form-select" id="assigned_to" name="assigned_to">
+              <option value="">Kendinize Atayın</option>
+              {% for u in all_users %}
+                <option value="{{ u.id }}" {% if u.id == current_user %}selected{% endif %}>
+                  {{ u.username }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="mb-3">
+            <label for="status" class="form-label">Durum</label>
+            <!-- value = veritabanı kodu, görünen metin = Türkçe etiket -->
+            <select class="form-select" id="status" name="status" required>
+              <option value="Planlandi" selected>Planlandı</option>
+              <option value="DevamEdiyor">Devam Ediyor</option>
+              <option value="Tamamlandi">Tamamlandı</option>
+            </select>
+          </div>
+
+          <button type="submit" class="btn btn-primary w-100">Görevi Kaydet</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sağ: Görev Listesi -->
+  <div class="col-md-6">
+    <div class="card shadow">
+      <div class="card-body">
+        <h4 class="card-title mb-4">Görev Listesi</h4>
+
+        {% if tasks %}
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Ad</th>
+                <th>Yer</th>
+                <th>Tarih</th>
+                <th>Durum</th>
+                <th>Atanan</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for t in tasks %}
+              <tr>
+                <td>{{ t.title }}</td>
+                <td>{{ t.location }}</td>
+                <td>{{ t.date }}</td>
+                <td>
+                  {% if t.status == 'Tamamlandi' %}
+                    <span class="badge bg-success">Tamamlandı</span>
+                  {% elif t.status == 'DevamEdiyor' %}
+                    <span class="badge bg-warning text-dark">Devam Ediyor</span>
+                  {% elif t.status == 'Planlandi' %}
+                    <span class="badge bg-secondary">Planlandı</span>
+                  {% else %}
+                    <span class="badge bg-light text-dark">{{ t.status }}</span>
+                  {% endif %}
+                </td>
+                <td>{{ t.assignee_name or '-' }}</td>
+                <td>
+                  {% if t.user_id == current_user %}
+                    <form method="POST" action="{{ url_for('delete_task', task_id=t.id) }}"
+                          onsubmit="return confirm('Bu görevi silmek istiyor musunuz?');">
+                      <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+                    </form>
+                  {% else %}
+                    <span class="text-muted">Silme Yetkiniz Yok</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% else %}
+          <p>Henüz görev girilmemiş.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

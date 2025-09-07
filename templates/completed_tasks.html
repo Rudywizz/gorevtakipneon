@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Tamamlanan Görevler{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3 class="mb-4">Tamamlanan Görevlerim</h3>
+
+    {% if tasks %}
+        <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Görev</th>
+                        <th>Yer</th>
+                        <th>Tarih</th>
+                        <th>Malzemeler</th>
+                        <th>Destek Birimi</th>
+                        <th>Açıklama</th>
+                        <th>Görevi Giren</th>
+                        <th>Durum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for task in tasks %}
+                        <tr>
+                            <td>{{ task["title"] }}</td>
+                            <td>{{ task["location"] }}</td>
+                            <td>{{ task["date"] }}</td>
+                            <td>{{ task["materials"] }}</td>
+                            <td>{{ task["needs_support"] }}</td>
+                            <td>{{ task["completion_note"] or "-" }}</td>
+                            <td>{{ task["assigner_name"] }}</td>
+                            <td><span class="badge bg-success">Tamamlandı</span></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="text-muted">Henüz tamamladığınız bir görev bulunmamaktadır.</p>
+    {% endif %}
+</div>
+{% endblock %}
