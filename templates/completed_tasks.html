@@ -1,44 +1,70 @@
 {% extends 'base.html' %}
+{% from "_macros.html" import status_badge %}
 
 {% block title %}Tamamlanan Görevler{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h3 class="mb-4">Tamamlanan Görevlerim</h3>
+<div class="row g-4">
 
-    {% if tasks %}
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Malzemeler</th>
-                        <th>Destek Birimi</th>
-                        <th>Açıklama</th>
-                        <th>Görevi Giren</th>
-                        <th>Durum</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["materials"] }}</td>
-                            <td>{{ task["needs_support"] }}</td>
-                            <td>{{ task["completion_note"] or "-" }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td><span class="badge bg-success">Tamamlandı</span></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+  <!-- Özet kartı -->
+  <div class="col-12">
+    <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff">
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <div class="fs-6 opacity-75">Tamamlanan Görevlerim</div>
+          <div class="fs-3 fw-bold">{{ tasks|length }}</div>
         </div>
+        <i class="bi bi-check2-circle fs-1 opacity-75"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Liste -->
+  <div class="col-12">
+    {% if tasks and tasks|length > 0 %}
+      <div class="card shadow">
+        <div class="card-body">
+          <h4 class="card-title mb-3">Görev Listesi</h4>
+
+          <div class="table-responsive">
+            <table class="table table-bordered align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th>Görev</th>
+                  <th>Yer</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th>Malzemeler</th>
+                  <th>Destek Birimi</th>
+                  <th>Açıklama</th>
+                  <th>Görevi Giren</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for task in tasks %}
+                  <tr>
+                    <td class="fw-medium">{{ task.title }}</td>
+                    <td>{{ task.location or '—' }}</td>
+                    <td>{{ task.date or '—' }}</td>
+                    <td>{{ status_badge(task.status or 'Tamamlandi') }}</td>
+                    <td class="small">{{ task.materials or '—' }}</td>
+                    <td class="small">{{ task.needs_support or '—' }}</td>
+                    <td class="small">{{ task.completion_note or '—' }}</td>
+                    <td>{{ task.assigner_name or '—' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+
+        </div>
+      </div>
     {% else %}
-        <p class="text-muted">Henüz tamamladığınız bir görev bulunmamaktadır.</p>
+      <div class="alert alert-light border d-flex align-items-center gap-2">
+        <i class="bi bi-inbox fs-5"></i>
+        Henüz tamamladığınız bir görev bulunmamaktadır.
+      </div>
     {% endif %}
+  </div>
 </div>
 {% endblock %}

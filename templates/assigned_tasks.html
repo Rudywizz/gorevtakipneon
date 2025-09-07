@@ -1,98 +1,145 @@
 {% extends 'base.html' %}
+{% from "_macros.html" import status_badge %}
 
-{% block title %}Bana Atanan Görevler{% endblock %}
+{% block title %}Bana Atananlar{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h3 class="mb-3">Bana Atanan Görevler</h3>
+<div class="row g-4">
 
-    <!-- Bekleyen Görevler -->
-    <h5 class="text-secondary">Bekleyen Görevler</h5>
-    {% set waiting_tasks = tasks
-        | selectattr("accepted", "equalto", "Bekliyor")
-        | selectattr("assigned_to", "equalto", current_user)
-        | list %}
+  {# Route zaten assigned_to=current_user ve completed="Hayir" filtreliyor.
+     Yine de ek gruplama yapıyoruz. #}
+  {% set waiting_tasks  = tasks | selectattr('accepted', 'equalto', 'Bekliyor') | list %}
+  {% set accepted_tasks = tasks | selectattr('accepted', 'equalto', 'Evet')     | list %}
+
+  <!-- Özet kartları -->
+  <div class="col-12">
+    <div class="row g-3">
+      <div class="col-12 col-md-6">
+        <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#38bdf8,#60a5fa);color:#fff">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fs-6 opacity-75">Bekleyen Görevler</div>
+              <div class="fs-3 fw-bold">{{ waiting_tasks|length }}</div>
+            </div>
+            <i class="bi bi-hourglass fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+      <div class="col-12 col-md-6">
+        <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#111">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fs-6">Kabul Edilen (Tamamlanmamış)</div>
+              <div class="fs-3 fw-bold">{{ accepted_tasks|length }}</div>
+            </div>
+            <i class="bi bi-clipboard-check fs-1"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bekleyen Görevler -->
+  <div class="col-12">
+    <h4 class="mb-3">Bekleyen Görevler</h4>
+
     {% if waiting_tasks %}
-        <div class="table-responsive mb-5">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Durum</th>
-                        <th>Gerekli Malzeme</th>
-                        <th>Destek Birimi</th>
-                        <th>Görevi Giren</th>
-                        <th>İşlem</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in waiting_tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["status"] }}</td>
-                            <td>{{ task["materials"] }}</td>
-                            <td>{{ task["needs_support"] }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('accept_task', task_id=task["id"]) }}">
-                                    <button type="submit" class="btn btn-sm btn-success">Kabul Et</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+      <div class="table-responsive mb-4">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Görev</th>
+              <th>Yer</th>
+              <th>Tarih</th>
+              <th>Durum</th>
+              <th>Gerekli Malzeme</th>
+              <th>Destek Birimi</th>
+              <th>Görevi Giren</th>
+              <th style="width:140px;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in waiting_tasks %}
+            <tr>
+              <td class="fw-medium">{{ task.title }}</td>
+              <td>{{ task.location or '—' }}</td>
+              <td>{{ task.date or '—' }}</td>
+              <td>{{ status_badge(task.status) }}</td>
+              <td class="small">{{ task.materials or '—' }}</td>
+              <td class="small">{{ task.needs_support or '—' }}</td>
+              <td>{{ task.assigner_name or '—' }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('accept_task', task_id=task.id) }}">
+                  <button type="submit" class="btn btn-success btn-sm">
+                    <i class="bi bi-hand-thumbs-up me-1"></i> Kabul Et
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-        <p class="text-muted">Bekleyen görev bulunmamaktadır.</p>
+      <div class="alert alert-light border d-flex align-items-center gap-2">
+        <i class="bi bi-inbox fs-5"></i> Bekleyen görev bulunmamaktadır.
+      </div>
     {% endif %}
+  </div>
 
-    <!-- Kabul Edilen Görevler -->
-    <h5 class="text-secondary">Kabul Edilen Görevler</h5>
-    {% set accepted_tasks = tasks
-        | selectattr("accepted", "equalto", "Evet")
-        | selectattr("completed", "equalto", "Hayir")
-        | selectattr("assigned_to", "equalto", current_user)
-        | list %}
+  <!-- Kabul Edilen Görevler -->
+  <div class="col-12">
+    <h4 class="mb-3">Kabul Edilen Görevler</h4>
+
     {% if accepted_tasks %}
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Durum</th>
-                        <th>Gerekli Malzeme</th>
-                        <th>Destek Birimi</th>
-                        <th>Görevi Giren</th>
-                        <th>İşlem</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in accepted_tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["status"] }}</td>
-                            <td>{{ task["materials"] }}</td>
-                            <td>{{ task["needs_support"] }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td>
-                                <a href="{{ url_for('complete_task', task_id=task["id"]) }}" class="btn btn-sm btn-outline-primary">İşi Sonlandır</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+      <div class="table-responsive">
+        <table class="table table-bordered align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Görev</th>
+              <th>Yer</th>
+              <th>Tarih</th>
+              <th>Durum</th>
+              <th>Gerekli Malzeme</th>
+              <th>Destek Birimi</th>
+              <th>Görevi Giren</th>
+              <th style="width:170px;">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in accepted_tasks %}
+            <tr>
+              <td class="fw-medium">{{ task.title }}</td>
+              <td>{{ task.location or '—' }}</td>
+              <td>{{ task.date or '—' }}</td>
+              <td>{{ status_badge(task.status) }}</td>
+              <td class="small">{{ task.materials or '—' }}</td>
+              <td class="small">{{ task.needs_support or '—' }}</td>
+              <td>{{ task.assigner_name or '—' }}</td>
+              <td>
+                <a href="{{ url_for('complete_task', task_id=task.id) }}" class="btn btn-primary btn-sm">
+                  <i class="bi bi-check2-square me-1"></i> İşi Sonlandır
+                </a>
+                {% if task.user_id == current_user %}
+                <form method="POST" action="{{ url_for('delete_task', task_id=task.id) }}"
+                      class="d-inline"
+                      onsubmit="return confirm('Bu görevi silmek istiyor musunuz?');">
+                  <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-trash me-1"></i> Sil
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-        <p class="text-muted">Kabul edilmiş ancak tamamlanmamış görev bulunmamaktadır.</p>
+      <div class="alert alert-light border d-flex align-items-center gap-2">
+        <i class="bi bi-clipboard-check fs-5"></i> Kabul edilmiş ancak tamamlanmamış görev bulunmamaktadır.
+      </div>
     {% endif %}
+  </div>
 </div>
 {% endblock %}

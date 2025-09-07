@@ -12,10 +12,17 @@
 
   <!-- Tema + UI İyileştirme CSS -->
   <style>
+    :root{
+      --brand:#0d6efd;
+      --c-total:#0d6efd;
+      --c-ongoing:#f59f00;   /* amber */
+      --c-done:#198754;      /* bootstrap success */
+      --c-planned:#64748b;   /* slate */
+    }
+
     * { transition: color .15s ease, background-color .15s ease, border-color .15s ease; }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
     body { transition: background-color .2s ease, color .2s ease; }
-
     body.dark-mode { background-color: #121212 !important; color: #f1f1f1 !important; }
     body.dark-mode .navbar { background-color: #1f1f1f !important; }
 
@@ -52,6 +59,7 @@
       border-color: #6ea8fe !important; box-shadow: 0 0 0 .2rem rgba(13,110,253,.25) !important;
     }
 
+    /* Buton ve kart dokunuşları */
     .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
     .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
     .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
@@ -80,6 +88,39 @@
 
     #themeToggle i { transition: transform .18s ease; display: inline-block; }
     #themeToggle:active i { transform: scale(.9) rotate(-8deg); }
+
+    /* ---- Modern yardımcı sınıflar ---- */
+    .card-soft{ border:0; border-radius:16px; box-shadow: 0 10px 30px rgba(13,110,253,.08); }
+    .input-icon{ position:relative; }
+    .input-icon .bi{ position:absolute; left:12px; top:50%; transform:translateY(-50%); opacity:.55; pointer-events:none; }
+    .input-icon .form-control, .input-icon .form-select{ padding-left:2.2rem; }
+    .form-switch-lg .form-check-input{ width:3rem; height:1.5rem; }
+    .toolbar{ display:flex; gap:.5rem; flex-wrap:wrap; align-items:center; }
+    .table-modern{ border-radius:12px; overflow:hidden; }
+    .table-modern thead th{ background:#f8fafc; font-weight:600; border-bottom:0; }
+    .table-modern tbody tr:hover{ background:#f9fbff; }
+    @media (min-width: 992px){ .sticky-card{ position:sticky; top:1rem; } }
+
+    /* ---- Özet (stat) kartları: renkli/gradient ---- */
+    .stat-grid{ display:grid; gap:1rem; grid-template-columns: repeat(4, minmax(0,1fr)); }
+    @media (max-width: 1199px){ .stat-grid{ grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 575px){ .stat-grid{ grid-template-columns: 1fr; } }
+
+    .stat-card{
+      border:0; border-radius:18px; color:#fff;
+      padding:.75rem 1rem; box-shadow:0 12px 28px rgba(0,0,0,.12);
+      position:relative; overflow:hidden;
+    }
+    .stat-card .stat-label{ font-size:.85rem; opacity:.9; }
+    .stat-card .stat-value{ font-size:2rem; font-weight:800; line-height:1.1; }
+
+    .stat-total{ background:linear-gradient(135deg, var(--c-total), #6ea8fe); }
+    .stat-ongoing{ background:linear-gradient(135deg, var(--c-ongoing), #ffd54d); color:#1d1d1d; }
+    .stat-done{ background:linear-gradient(135deg, var(--c-done), #4dd4ac); }
+    .stat-planned{ background:linear-gradient(135deg, var(--c-planned), #94a3b8); }
+
+    /* dark-mode için stat kartları okunabilir kalsın */
+    body.dark-mode .stat-ongoing{ color:#111; }
   </style>
 </head>
 <body class="bg-light">

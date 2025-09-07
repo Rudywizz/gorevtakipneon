@@ -1,74 +1,194 @@
 {% extends 'base.html' %}
+{% from "_macros.html" import status_badge %}
 
 {% block title %}Görev Paneli{% endblock %}
 
 {% block content %}
-<div class="row">
-  <!-- Sol: Görev Ekleme -->
-  <div class="col-md-6">
-    <div class="card shadow mb-4">
+<div class="row g-4">
+
+  <!-- Özet kartları (gradient) -->
+  <div class="col-12">
+    <div class="row g-3">
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#3b82f6,#60a5fa);color:#fff">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fs-6 opacity-75">Toplam Görev</div>
+              <div class="fs-3 fw-bold">{{ total_tasks or 0 }}</div>
+            </div>
+            <i class="bi bi-collection fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#111">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fs-6">Devam Ediyor</div>
+              <div class="fs-3 fw-bold">{{ ongoing_tasks or 0 }}</div>
+            </div>
+            <i class="bi bi-hourglass-split fs-1"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fs-6 opacity-75">Tamamlandı</div>
+              <div class="fs-3 fw-bold">{{ completed_tasks or 0 }}</div>
+            </div>
+            <i class="bi bi-check2-circle fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-6 col-xl-3">
+        <div class="card shadow-sm border-0" style="background:linear-gradient(135deg,#6b7280,#9ca3af);color:#fff">
+          <div class="card-body d-flex align-items-center justify-content-between">
+            <div>
+              <div class="fs-6 opacity-75">Planlandı</div>
+              <div class="fs-3 fw-bold">{{ planned_tasks or 0 }}</div>
+            </div>
+            <i class="bi bi-calendar-event fs-1 opacity-75"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sol: Görev Ekle -->
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
       <div class="card-body">
-        <h4 class="card-title mb-4">Yeni Görev Ekle</h4>
+        <h4 class="card-title mb-4 d-flex align-items-center gap-2">
+          <i class="bi bi-plus-square-dotted"></i> Yeni Görev Ekle
+        </h4>
 
         <form method="POST" action="{{ url_for('dashboard') }}">
           <div class="mb-3">
             <label for="title" class="form-label">Görev Adı</label>
-            <input type="text" class="form-control" id="title" name="title" required>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-type"></i></span>
+              <input type="text" class="form-control" id="title" name="title" required>
+            </div>
           </div>
 
           <div class="mb-3">
             <label for="location" class="form-label">Görev Yeri</label>
-            <input type="text" class="form-control" id="location" name="location">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+              <input type="text" class="form-control" id="location" name="location">
+            </div>
           </div>
 
           <div class="mb-3">
             <label for="materials" class="form-label">Gerekli Malzemeler</label>
-            <input type="text" class="form-control" id="materials" name="materials">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-tools"></i></span>
+              <input type="text" class="form-control" id="materials" name="materials">
+            </div>
           </div>
 
           <div class="mb-3">
             <label for="date" class="form-label">Planlanan Tarih</label>
-            <input type="date" class="form-control" id="date" name="date">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+              <input type="date" class="form-control" id="date" name="date" placeholder="gg.aa.yyyy">
+            </div>
           </div>
 
           <div class="mb-3">
             <label for="needs_support" class="form-label">Destek Birimi (varsa)</label>
-            <input type="text" class="form-control" id="needs_support" name="needs_support">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-headset"></i></span>
+              <input type="text" class="form-control" id="needs_support" name="needs_support">
+            </div>
           </div>
 
           <div class="mb-3">
             <label for="assigned_to" class="form-label">Görevi Atayacağınız Kişi</label>
-            <select class="form-select" id="assigned_to" name="assigned_to">
-              <option value="">Kendinize Atayın</option>
-              {% for u in all_users %}
-                <option value="{{ u.id }}" {% if u.id == current_user %}selected{% endif %}>
-                  {{ u.username }}
-                </option>
-              {% endfor %}
-            </select>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
+              <select class="form-select" id="assigned_to" name="assigned_to">
+                <option value="">Kendinize Atayın</option>
+                {% for u in all_users %}
+                  <option value="{{ u.id }}" {% if u.id == current_user %}selected{% endif %}>{{ u.username }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
 
-          <div class="mb-3">
+          <div class="mb-4">
             <label for="status" class="form-label">Durum</label>
-            <!-- value = veritabanı kodu, görünen metin = Türkçe etiket -->
-            <select class="form-select" id="status" name="status" required>
-              <option value="Planlandi" selected>Planlandı</option>
-              <option value="DevamEdiyor">Devam Ediyor</option>
-              <option value="Tamamlandi">Tamamlandı</option>
-            </select>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-flag"></i></span>
+              <select class="form-select" id="status" name="status" required>
+                <option value="Planlandi" selected>Planlandı</option>
+                <option value="DevamEdiyor">Devam Ediyor</option>
+                <option value="Tamamlandi">Tamamlandı</option>
+              </select>
+            </div>
           </div>
 
-          <button type="submit" class="btn btn-primary w-100">Görevi Kaydet</button>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-save2 me-1"></i> Görevi Kaydet
+          </button>
         </form>
       </div>
     </div>
   </div>
 
   <!-- Sağ: Görev Listesi -->
-  <div class="col-md-6">
-    <div class="card shadow">
+  <div class="col-lg-6">
+    <div class="card shadow-sm">
       <div class="card-body">
-        <h4 class="card-title mb-4">Görev Listesi</h4>
+        <h4 class="card-title mb-3 d-flex align-items-center gap-2">
+          <i class="bi bi-list-task"></i> Görev Listesi
+        </h4>
+
+        <!-- Filtre Çubuğu (sade, tam Bootstrap) -->
+        <form class="row g-2 mb-3" method="get" action="{{ url_for('dashboard') }}">
+          <div class="col-md-5">
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-search"></i></span>
+              <input type="text" class="form-control" name="q" placeholder="Ara (ad, yer, malzeme)" value="{{ q }}">
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <select class="form-select" name="status">
+              <option value="">Durum (tümü)</option>
+              <option value="Planlandi"   {% if f_status=='Planlandi' %}selected{% endif %}>Planlandı</option>
+              <option value="DevamEdiyor" {% if f_status=='DevamEdiyor' %}selected{% endif %}>Devam Ediyor</option>
+              <option value="Tamamlandi"  {% if f_status=='Tamamlandi' %}selected{% endif %}>Tamamlandı</option>
+            </select>
+          </div>
+
+          <div class="col-md-3">
+            <select class="form-select" name="assigned">
+              <option value="">Atanan (tümü)</option>
+              {% for u in all_users %}
+                <option value="{{ u.id }}" {% if f_assigned|int == u.id %}selected{% endif %}>{{ u.username }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="col-12 d-flex align-items-center gap-2">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="mine" name="mine" value="1" {% if mine %}checked{% endif %}>
+              <label class="form-check-label" for="mine">Sadece benimkiler</label>
+            </div>
+            <button class="btn btn-outline-primary" type="submit">
+              <i class="bi bi-funnel me-1"></i> Filtrele
+            </button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('dashboard') }}">
+              <i class="bi bi-arrow-counterclockwise me-1"></i> Temizle
+            </a>
+          </div>
+        </form>
 
         {% if tasks %}
         <div class="table-responsive">
@@ -80,26 +200,16 @@
                 <th>Tarih</th>
                 <th>Durum</th>
                 <th>Atanan</th>
-                <th>İşlem</th>
+                <th style="width:95px;">İşlem</th>
               </tr>
             </thead>
             <tbody>
               {% for t in tasks %}
               <tr>
-                <td>{{ t.title }}</td>
+                <td class="fw-medium">{{ t.title }}</td>
                 <td>{{ t.location }}</td>
                 <td>{{ t.date }}</td>
-                <td>
-                  {% if t.status == 'Tamamlandi' %}
-                    <span class="badge bg-success">Tamamlandı</span>
-                  {% elif t.status == 'DevamEdiyor' %}
-                    <span class="badge bg-warning text-dark">Devam Ediyor</span>
-                  {% elif t.status == 'Planlandi' %}
-                    <span class="badge bg-secondary">Planlandı</span>
-                  {% else %}
-                    <span class="badge bg-light text-dark">{{ t.status }}</span>
-                  {% endif %}
-                </td>
+                <td>{{ status_badge(t.status) }}</td>
                 <td>{{ t.assignee_name or '-' }}</td>
                 <td>
                   {% if t.user_id == current_user %}
@@ -108,7 +218,7 @@
                       <button type="submit" class="btn btn-sm btn-danger">Sil</button>
                     </form>
                   {% else %}
-                    <span class="text-muted">Silme Yetkiniz Yok</span>
+                    <span class="text-muted">—</span>
                   {% endif %}
                 </td>
               </tr>
@@ -116,8 +226,30 @@
             </tbody>
           </table>
         </div>
+
+        {% if pages > 1 %}
+        <nav aria-label="Sayfalama">
+          <ul class="pagination justify-content-end">
+            <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('dashboard', q=q, status=f_status, mine='1' if mine else None, assigned=f_assigned, page=page-1) }}">«</a>
+            </li>
+            {% for p in range(1, pages + 1) %}
+              <li class="page-item {% if p == page %}active{% endif %}">
+                <a class="page-link"
+                   href="{{ url_for('dashboard', q=q, status=f_status, mine='1' if mine else None, assigned=f_assigned, page=p) }}">{{ p }}</a>
+              </li>
+            {% endfor %}
+            <li class="page-item {% if page >= pages %}disabled{% endif %}">
+              <a class="page-link"
+                 href="{{ url_for('dashboard', q=q, status=f_status, mine='1' if mine else None, assigned=f_assigned, page=page+1) }}">»</a>
+            </li>
+          </ul>
+        </nav>
+        {% endif %}
+
         {% else %}
-          <p>Henüz görev girilmemiş.</p>
+          <div class="alert alert-light border">Henüz görev girilmemiş.</div>
         {% endif %}
       </div>
     </div>
