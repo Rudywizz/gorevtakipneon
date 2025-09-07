@@ -1,147 +1,69 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="utf-8" />
-  <title>Görev Takip Raporu</title>
+    <meta charset="UTF-8">
+    <title>Görev Raporu PDF</title>
+    <style>
+        @font-face {
+            font-family: 'DejaVuSans';
+            src: url('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.0/dejavu-fonts-ttf/ttf/DejaVuSans.ttf') format('truetype');
+        }
 
-  <style>
-    /* ReportLab'ta app.py'de 'TRSans' ailesi kaydedildi. Onu kullanıyoruz. */
-    html, body, table, th, td, div, span, p, h1, h2, h3 {
-      font-family: "TRSans";   /* <-- BURASI ÖNEMLİ */
-      color:#0f172a;
-      line-height:1.35;
-      font-size:10.6pt;
-    }
+        body {
+            font-family: 'DejaVuSans', sans-serif;
+            font-size: 12px;
+            margin: 20px;
+        }
 
-    @page {
-      size: A4;
-      margin: 16mm 14mm 18mm 14mm;
-      @frame header_frame { -pdf-frame-content: header_content; top:10pt; left:14pt; width:567pt; height:88pt; }
-      @frame content_frame { -pdf-frame-content: content;        top:112pt; left:14pt; width:567pt; height:630pt; }
-      @frame footer_frame { -pdf-frame-content: footer_content;  top:770pt; left:14pt; width:567pt; height:20pt; }
-    }
+        h2 {
+            text-align: center;
+        }
 
-    .hdr { width:100%; border-collapse:collapse; }
-    .hdr td { border:none; vertical-align:middle; }
-    .logo-wrap { width:68pt; height:48pt; }
-    .logo { max-width:68pt; max-height:48pt; width:auto; height:auto; object-fit:contain; display:block; }
-    .org    { font-weight:bold; font-size:12pt; letter-spacing:.1pt; margin:0 0 2pt 0; }
-    .title  { font-weight:bold; font-size:16pt; padding:6pt 10pt; background:#0ea5a5; color:#ffffff; border-radius:3pt; display:inline-block; }
-    .page   { text-align:right; color:#64748b; font-size:10pt; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
 
-    .meta { width:100%; border-collapse:collapse; margin:10pt 0 8pt 0; }
-    .meta td { border:0.6pt solid #e5e7eb; padding:6pt 7pt; font-size:10pt; }
-    .meta td.lbl { width:190pt; background:#f8fafc; color:#475569; }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: left;
+        }
 
-    .kpi { width:100%; border-collapse:collapse; margin:8pt 0 12pt 0; table-layout:fixed; }
-    .kpi td { border:0.6pt solid #e5e7eb; padding:10pt 8pt; text-align:center; }
-    .kpi .n { font-weight:bold; font-size:16pt; }
-    .kpi .t { font-size:9.6pt; color:#64748b; margin-top:2pt; }
-
-    table.tbl { width:100%; border-collapse:collapse; }
-    .tbl thead th {
-      font-weight:bold;
-      background:#eef2ff;
-      color:#0f172a;
-      border:0.6pt solid #e5e7eb;
-      padding:7pt 6pt;
-      text-align:left;
-      font-size:10pt;
-    }
-    .tbl tbody td {
-      border:0.6pt solid #e5e7eb;
-      padding:7pt 6pt;
-      vertical-align:middle;
-      font-size:10.4pt;
-    }
-    .tbl tbody tr:nth-child(odd) td { background:#f8fafc; }
-
-    .c-task{width:22%} .c-date{width:12%;white-space:nowrap}
-    .c-status{width:14%;text-align:center} .c-mat{width:16%}
-    .c-supp{width:13%} .c-asgn{width:10%} .c-note{width:13%}
-
-    .badge{display:inline-block;padding:2pt 9pt;border-radius:3pt;font-size:9.6pt;color:#fff;white-space:nowrap;min-width:74pt;text-align:center;line-height:1.2}
-    .bg-green{background:#16a34a}
-    .bg-orange{background:#f59e0b}
-    .bg-gray{background:#6b7280}
-
-    .footer { font-size:9.6pt; color:#64748b; text-align:right; }
-  </style>
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
 </head>
 <body>
-
-  <div id="header_content">
-    <table class="hdr">
-      <tr>
-        <td class="logo-wrap">{% if logo_url %}<img src="{{ logo_url }}" class="logo" alt="Logo">{% endif %}</td>
-        <td>
-          <div class="org">{{ org_title or 'BIM Görev Takip' }}</div>
-          <div class="title">Görev Takip Raporu</div>
-        </td>
-        <td class="page" style="width:140pt">Sayfa <pdf:pagenumber /> / <pdf:pagecount /></td>
-      </tr>
+    <h2>Görev Raporu</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Görev</th>
+                <th>Tarih</th>
+                <th>Durum</th>
+                <th>Malzeme</th>
+                <th>Destek</th>
+                <th>Atanan</th>
+                <th>Açıklama</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for task in tasks %}
+            <tr>
+                <td>{{ task["title"] }}</td>
+                <td>{{ task["date"] }}</td>
+                <td>{{ task["status"] }}</td>
+                <td>{{ task["materials"] or "-" }}</td>
+                <td>{{ task["needs_support"] or "-" }}</td>
+                <td>{{ task["assignee_name"] or "-" }}</td>
+                <td>{{ task["completion_note"] or "-" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
-  </div>
-
-  <div id="content">
-    <table class="meta">
-      <tr><td class="lbl">Oluşturulma Tarihi</td><td>{{ generated_at.strftime('%d.%m.%Y %H:%M') }}</td></tr>
-      <tr><td class="lbl">Toplam Görev</td><td>{{ kpi.total }}</td></tr>
-      <tr><td class="lbl">Tamamlanan</td><td>{{ kpi.completed }}</td></tr>
-      <tr><td class="lbl">Aktif</td><td>{{ kpi.ongoing }}</td></tr>
-      <tr><td class="lbl">Planlanan</td><td>{{ kpi.planned }}</td></tr>
-    </table>
-
-    <table class="kpi">
-      <tr>
-        <td><div class="n">{{ kpi.total }}</div><div class="t">Toplam</div></td>
-        <td><div class="n">{{ kpi.completed }}</div><div class="t">Tamamlanan</div></td>
-        <td><div class="n">{{ kpi.ongoing }}</div><div class="t">Aktif</div></td>
-        <td><div class="n">{{ kpi.planned }}</div><div class="t">Planlanan</div></td>
-      </tr>
-    </table>
-
-    <table class="tbl">
-      <thead>
-        <tr>
-          <th class="c-task">Görev</th>
-          <th class="c-date">Tarih</th>
-          <th class="c-status">Durum</th>
-          <th class="c-mat">Malzeme</th>
-          <th class="c-supp">Destek</th>
-          <th class="c-asgn">Atanan</th>
-          <th class="c-note">Açıklama</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for t in tasks %}
-          {% set s = t.status or '' %}
-          {% if s == 'Tamamlandi' %}
-            {% set cls = 'bg-green' %}{% set label = 'Tamamlandı' %}
-          {% elif s == 'DevamEdiyor' %}
-            {% set cls = 'bg-orange' %}{% set label = 'Devam Ediyor' %}
-          {% else %}
-            {% set cls = 'bg-gray' %}{% set label = 'Planlandı' %}
-          {% endif %}
-          <tr>
-            <td>{{ t.title or '' }}</td>
-            <td>{{ t.date or '' }}</td>
-            <td class="c-status"><span class="badge {{ cls }}">{{ label }}</span></td>
-            <td>{{ t.materials or '' }}</td>
-            <td>{{ t.needs_support or '' }}</td>
-            <td>{{ t.assignee_name or '' }}</td>
-            <td>{{ t.completion_note or '' }}</td>
-          </tr>
-        {% endfor %}
-        {% if not tasks %}
-          <tr><td colspan="7" style="text-align:center; padding:14pt; color:#64748b;">Kayıt bulunamadı.</td></tr>
-        {% endif %}
-      </tbody>
-    </table>
-  </div>
-
-  <div id="footer_content" class="footer">
-    Sayfa <pdf:pagenumber /> / <pdf:pagecount />
-  </div>
 </body>
 </html>
