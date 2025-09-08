@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>Görev Takip Raporu</title>
+
+  <style>
+    /* --------- FONT GÖMME: önce base64 varsa onu kullan, yoksa file:// fallback --------- */
+    {% if font_regular_b64 %}
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('data:font/ttf;base64,{{ font_regular_b64 }}') format('truetype');
+        font-weight: 400; font-style: normal;
+      }
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('data:font/ttf;base64,{{ font_bold_b64 }}') format('truetype');
+        font-weight: 700; font-style: normal;
+      }
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('data:font/ttf;base64,{{ font_italic_b64 }}') format('truetype');
+        font-weight: 400; font-style: italic;
+      }
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('data:font/ttf;base64,{{ font_boldit_b64 }}') format('truetype');
+        font-weight: 700; font-style: italic;
+      }
+    {% elif font_regular_url %}
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('{{ font_regular_url }}') format('truetype');
+        font-weight: 400; font-style: normal;
+      }
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('{{ font_bold_url }}') format('truetype');
+        font-weight: 700; font-style: normal;
+      }
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('{{ font_italic_url }}') format('truetype');
+        font-weight: 400; font-style: italic;
+      }
+      @font-face {
+        font-family: 'DejaVuEmbed';
+        src: url('{{ font_boldit_url }}') format('truetype');
+        font-weight: 700; font-style: italic;
+      }
+    {% endif %}
+
+    html, body, table, th, td, div, span, p, h1, h2, h3 {
+      font-family: 'DejaVuEmbed', Arial, sans-serif;
+      color:#0f172a; line-height:1.35; font-size:10.6pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Sayfa kenar boşlukları (opsiyonel; pdfkit options ile de verilebilir) */
+    @page { margin: 16mm 12mm 16mm 12mm; }
+
+    /* Header */
+    .hdr { width:100%; border-collapse:collapse; margin-bottom:8pt; }
+    .hdr td { border:none; vertical-align:middle; }
+    .logo-wrap { width:68pt; height:48pt; }
+    .logo { max-width:68pt; max-height:48pt; object-fit:contain; display:block; }
+    .org { font-weight:700; font-size:12pt; margin:0 0 2pt 0; }
+    .title { font-weight:700; font-size:16pt; padding:6pt 10pt; background:#0ea5a5; color:#fff; border-radius:3pt; display:inline-block; }
+
+    /* Meta */
+    .meta { width:100%; border-collapse:collapse; margin:10pt 0 8pt 0; }
+    .meta td { border:0.6pt solid #e5e7eb; padding:6pt 7pt; font-size:10pt; }
+    .meta td.lbl { width:190pt; background:#f8fafc; color:#475569; }
+
+    /* KPI */
+    .kpi { width:100%; border-collapse:collapse; margin:8pt 0 12pt 0; table-layout:fixed; }
+    .kpi td { border:0.6pt solid #e5e7eb; padding:10pt 8pt; text-align:center; }
+    .kpi .n { font-weight:700; font-size:16pt; }
+    .kpi .t { font-size:9.6pt; color:#64748b; margin-top:2pt; }
+
+    /* Detay tablo */
+    table.tbl { width:100%; border-collapse:collapse; }
+    thead { display: table-header-group; }   /* her sayfada başlık tekrarı */
+    tfoot { display: table-footer-group; }
+    tr, td, th { page-break-inside: avoid; }
+    .tbl thead th {
+      font-weight:700;
+      background:#eef2ff;
+      color:#0f172a;
+      border:0.6pt solid #e5e7eb;
+      padding:7pt 6pt;
+      text-align:left;
+      font-size:10pt;
+    }
+    .tbl tbody td {
+      border:0.6pt solid #e5e7eb;
+      padding:7pt 6pt;
+      vertical-align:middle;
+      font-size:10.4pt;
+    }
+    .tbl tbody tr:nth-child(odd) td { background:#f8fafc; }
+
+    /* Kolon genişlikleri */
+    .c-task{width:22%} .c-date{width:12%;white-space:nowrap}
+    .c-status{width:14%;text-align:center} .c-mat{width:16%}
+    .c-supp{width:13%} .c-asgn{width:10%} .c-note{width:13%}
+
+    /* Durum rozetleri */
+    .badge{display:inline-block;padding:2pt 9pt;border-radius:3pt;font-size:9.6pt;color:#fff;white-space:nowrap;min-width:74pt;text-align:center;line-height:1.2}
+    .bg-green{background:#16a34a}
+    .bg-orange{background:#f59e0b}
+    .bg-gray{background:#6b7280}
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <table class="hdr">
+    <tr>
+      <td class="logo-wrap">{% if logo_url %}<img src="{{ logo_url }}" class="logo" alt="Logo">{% endif %}</td>
+      <td>
+        <div class="org">{{ org_title or 'BIM Görev Takip' }}</div>
+        <div class="title">Görev Takip Raporu</div>
+      </td>
+      <td style="width:140pt"></td>
+    </tr>
+  </table>
+
+  <!-- META -->
+  <table class="meta">
+    <tr><td class="lbl">Oluşturulma Tarihi</td><td>{{ generated_at.strftime('%d.%m.%Y %H:%M') }}</td></tr>
+    <tr><td class="lbl">Toplam Görev</td><td>{{ kpi.total }}</td></tr>
+    <tr><td class="lbl">Tamamlanan</td><td>{{ kpi.completed }}</td></tr>
+    <tr><td class="lbl">Aktif</td><td>{{ kpi.ongoing }}</td></tr>
+    <tr><td class="lbl">Planlanan</td><td>{{ kpi.planned }}</td></tr>
+  </table>
+
+  <!-- KPI -->
+  <table class="kpi">
+    <tr>
+      <td><div class="n">{{ kpi.total }}</div><div class="t">Toplam</div></td>
+      <td><div class="n">{{ kpi.completed }}</div><div class="t">Tamamlanan</div></td>
+      <td><div class="n">{{ kpi.ongoing }}</div><div class="t">Aktif</div></td>
+      <td><div class="n">{{ kpi.planned }}</div><div class="t">Planlanan</div></td>
+    </tr>
+  </table>
+
+  <!-- DETAY -->
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th class="c-task">Görev</th>
+        <th class="c-date">Tarih</th>
+        <th class="c-status">Durum</th>
+        <th class="c-mat">Malzeme</th>
+        <th class="c-supp">Destek</th>
+        <th class="c-asgn">Atanan</th>
+        <th class="c-note">Açıklama</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tasks %}
+        {% set s = t.status or '' %}
+        {% if s == 'Tamamlandi' %}{% set cls='bg-green' %}{% set label='Tamamlandı' %}
+        {% elif s == 'DevamEdiyor' %}{% set cls='bg-orange' %}{% set label='Devam Ediyor' %}
+        {% else %}{% set cls='bg-gray' %}{% set label='Planlandı' %}{% endif %}
+        <tr>
+          <td>{{ t.title or '' }}</td>
+          <td>{{ t.date or '' }}</td>
+          <td class="c-status"><span class="badge {{ cls }}">{{ label }}</span></td>
+          <td>{{ t.materials or '' }}</td>
+          <td>{{ t.needs_support or '' }}</td>
+          <td>{{ t.assignee_name or '' }}</td>
+          <td>{{ t.completion_note or '' }}</td>
+        </tr>
+      {% endfor %}
+      {% if not tasks %}
+        <tr><td colspan="7" style="text-align:center; padding:14pt; color:#64748b;">Kayıt bulunamadı.</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+
+</body>
+</html>

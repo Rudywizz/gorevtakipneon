@@ -1,0 +1,27 @@
+{# templates/_macros.html #}
+{% macro status_badge(status) -%}
+  {# Güvenli normalize: string + lower + trim #}
+  {% set s = (status or '')|string|lower|trim %}
+
+  {# Kanonik değeri belirle #}
+  {% if s in ['tamamlandi','tamamlandı','completed','complete','done','bitti','evet'] %}
+    {% set canon = 'Tamamlandi' %}
+  {% elif s in ['devamediyor','devam ediyor','in-progress','progress','doing','çalışılıyor','calisiliyor','calisiyor'] %}
+    {% set canon = 'DevamEdiyor' %}
+  {% elif s in ['planlandi','planlandı','planned','planli','planlı','todo','pending','beklemede','bekliyor','hayir'] %}
+    {% set canon = 'Planlandi' %}
+  {% else %}
+    {% set canon = None %}
+  {% endif %}
+
+  {# Rozet render #}
+  {% if canon == 'Tamamlandi' %}
+    <span class="badge bg-success status-badge" data-status="Tamamlandi">Tamamlandı</span>
+  {% elif canon == 'DevamEdiyor' %}
+    <span class="badge bg-warning text-dark status-badge" data-status="DevamEdiyor">Devam Ediyor</span>
+  {% elif canon == 'Planlandi' %}
+    <span class="badge bg-secondary status-badge" data-status="Planlandi">Planlandı</span>
+  {% else %}
+    <span class="badge bg-light text-dark status-badge" data-status="">{{ status or '—' }}</span>
+  {% endif %}
+{%- endmacro %}
