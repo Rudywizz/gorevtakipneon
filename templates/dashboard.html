@@ -3,30 +3,22 @@
 
 {% block title %}Görev Paneli{% endblock %}
 
-{# Stil: satır kısaltma + mini avatar #}
 {% block extra_head %}
 <style>
-  .truncate-1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .truncate-2 {
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
-  .avatar {
-    width: 28px; height: 28px; border-radius: 50%;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: .8rem; font-weight: 600; background: #e9ecef; color: #495057;
-  }
-  body.dark-mode .avatar { background: #2a2a2a; color: #f1f1f1; }
-  .table thead th { font-weight: 600; }
+  /* Başlık ikonları için minik hizalama */
+  .table thead th{font-weight:600;vertical-align:middle;white-space:nowrap}
+  .table thead th .bi{position:relative;top:-1px}
+
+  /* Ek güvenlik: çok uzun tek-parça metinleri de kır */
+  .t-multi-2{overflow-wrap:anywhere;word-break:break-word}
+  .tcell{min-width:0} /* flex/inline-flex içinde kırpma çalışsın */
 </style>
 {% endblock %}
 
-{# Üst şerit: sayaç kartları #}
 {% block pre_content %}
   {% include "partials/_stats.html" %}
 {% endblock %}
 
-{# Başlık + minimalist filtre barı #}
 {% block page_header %}
 <form class="w-100" method="get" action="{{ url_for('dashboard') }}" id="filterForm" role="search" aria-label="Görev filtreleri">
   <div class="d-flex flex-column gap-1">
@@ -48,7 +40,7 @@
     <div class="text-muted small">Toplam sonuç: {{ total }}</div>
   </div>
 
-  {# Modal: Detaylı filtreler #}
+  <!-- Detaylı filtre modalı -->
   <div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content card-elevate">
@@ -82,11 +74,8 @@
 
             <div class="col-12">
               <div class="form-check">
-                <input class="form-check-input" type="checkbox" value="1" id="mine" name="mine"
-                       {{ mine and 'checked' or '' }}>
-                <label class="form-check-label" for="mine">
-                  Sadece benim görevlerim
-                </label>
+                <input class="form-check-input" type="checkbox" value="1" id="mine" name="mine" {{ mine and 'checked' or '' }}>
+                <label class="form-check-label" for="mine">Sadece benim görevlerim</label>
               </div>
             </div>
           </div>
@@ -108,7 +97,7 @@
 
 {% block content %}
 <div class="row g-3">
-  <!-- Sol: Görev Ekleme -->
+  <!-- Sol: Görev Ekle -->
   <div class="col-md-6">
     <div class="card card-elevate shadow-sm">
       <div class="card-body">
@@ -147,9 +136,7 @@
             <select class="form-select" id="assigned_to" name="assigned_to">
               <option value="">Kendinize Atayın</option>
               {% for u in all_users %}
-                <option value="{{ u.id }}" {% if u.id == current_user %}selected{% endif %}>
-                  {{ u.username }}
-                </option>
+                <option value="{{ u.id }}" {% if u.id == current_user %}selected{% endif %}>{{ u.username }}</option>
               {% endfor %}
             </select>
           </div>
@@ -181,34 +168,40 @@
 
         {% if tasks %}
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-2">
+          <table class="table table-hover align-middle mb-2 table-harmonize">
+            <colgroup>
+              <col class="w-30"><!-- Ad -->
+              <col class="w-20"><!-- Yer -->
+              <col class="w-14"><!-- Tarih -->
+              <col class="w-18"><!-- Durum -->
+              <col class="w-18"><!-- Atanan -->
+              <col style="width:120px"><!-- İşlem -->
+            </colgroup>
             <thead class="table-light">
               <tr>
-                <th><i class="bi bi-hash"></i> Ad</th>
-                <th><i class="bi bi-geo-alt"></i> Yer</th>
-                <th><i class="bi bi-calendar3"></i> Tarih</th>
-                <th><i class="bi bi-activity"></i> Durum</th>
-                <th><i class="bi bi-person"></i> Atanan</th>
-                <th class="text-end" style="width:120px">İşlem</th>
+                <th scope="col" class="text-nowrap"><i class="bi bi-card-text me-1"></i> Ad</th>
+                <th scope="col" class="text-nowrap"><i class="bi bi-geo-alt me-1"></i> Yer</th>
+                <th scope="col" class="text-nowrap"><i class="bi bi-calendar3 me-1"></i> Tarih</th>
+                <th scope="col" class="text-nowrap"><i class="bi bi-activity me-1"></i> Durum</th>
+                <th scope="col" class="text-nowrap"><i class="bi bi-person me-1"></i> Atanan</th>
+                <th scope="col" class="text-end text-nowrap"><i class="bi bi-gear me-1"></i> İşlem</th>
               </tr>
             </thead>
             <tbody>
               {% for t in tasks %}
               <tr>
-                <td class="truncate-2" title="{{ t.title }}">{{ t.title }}</td>
-                <td class="truncate-1" title="{{ t.location }}">{{ t.location }}</td>
-                <td>{{ t.date|safe_date }}</td>
-                <td>
-                  {{ status_badge(t.status, t.accepted, t.completed) }}
-                </td>
-                <td>
+                <td class="tcell t-multi-2" title="{{ t.title }}">{{ t.title }}</td>
+                <td class="tcell t-clip" title="{{ t.location }}">{{ t.location }}</td>
+                <td class="tcell t-nowrap">{{ t.date|safe_date }}</td>
+                <td class="tcell">{{ status_badge(t.status, t.accepted, t.completed) }}</td>
+                <td class="tcell">
                   {% set name = t.assignee_name or '-' %}
-                  <span class="d-inline-flex align-items-center gap-2">
-                    <span class="avatar">{{ name[:1]|upper }}</span>
-                    <span class="truncate-1" title="{{ name }}">{{ name }}</span>
+                  <span class="name-wrap">
+                    <span class="avatar-initial">{{ name[:1]|upper }}</span>
+                    <span class="name" title="{{ name }}">{{ name }}</span>
                   </span>
                 </td>
-                <td class="text-end">
+                <td class="actions text-end t-nowrap">
                   {% if t.user_id == current_user %}
                     <form method="POST" action="{{ url_for('delete_task', task_id=t.id) }}"
                           onsubmit="return confirm('Bu görevi silmek istiyor musunuz?');" class="d-inline-block">
@@ -228,7 +221,6 @@
           </table>
         </div>
 
-        {# Sayfalama #}
         <nav aria-label="Sayfalama" class="mt-2">
           <ul class="pagination pagination-sm justify-content-end mb-0">
             <li class="page-item {{ 1 == page and 'disabled' or '' }}">
@@ -237,9 +229,7 @@
                 Önceki
               </a>
             </li>
-            <li class="page-item disabled">
-              <span class="page-link">Sayfa {{ page }} / {{ pages }}</span>
-            </li>
+            <li class="page-item disabled"><span class="page-link">Sayfa {{ page }} / {{ pages }}</span></li>
             <li class="page-item {{ page >= pages and 'disabled' or '' }}">
               <a class="page-link"
                  href="{{ url_for('dashboard', page=page+1 if page<pages else pages, q=q, status=f_status, assigned=f_assigned, mine='1' if mine else None) }}">
@@ -250,8 +240,7 @@
         </nav>
         {% else %}
           <div class="alert alert-light border d-flex align-items-center gap-2 mb-0" role="alert">
-            <i class="bi bi-inbox"></i>
-            Henüz görev girilmemiş.
+            <i class="bi bi-inbox"></i> Henüz görev girilmemiş.
           </div>
         {% endif %}
       </div>
