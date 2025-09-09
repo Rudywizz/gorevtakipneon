@@ -4,21 +4,42 @@
   <meta charset="UTF-8" />
   <title>{% block title %}Görev Takip Sistemi{% endblock %}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta id="meta-theme-color" name="theme-color" content="#0d6efd" />
+  <meta name="color-scheme" content="light dark" />
 
-  <!-- Bootstrap CSS -->
+  <!-- Favicon -->
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap CSS + Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Bootstrap Icons -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
 
-  <!-- Tema + UI İyileştirme CSS -->
+  <!-- Özel UI stilleri -->
+  <link href="{{ url_for('static', filename='css/ui.css') }}" rel="stylesheet">
+
+  {% block extra_head %}{% endblock %}
+
   <style>
+    /* Genel geçişler ve motion tercihi */
     * { transition: color .15s ease, background-color .15s ease, border-color .15s ease; }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
-    body { transition: background-color .2s ease, color .2s ease; }
 
+    html, body {
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans",
+                   "Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol";
+    }
+
+    body { transition: background-color .2s ease, color .2s ease; }
+    body.bg-app { background-color: #f6f8fb; } /* light arkaplan */
+
+    /* Dark Mode */
     body.dark-mode { background-color: #121212 !important; color: #f1f1f1 !important; }
     body.dark-mode .navbar { background-color: #1f1f1f !important; }
-
     body.dark-mode .card,
     body.dark-mode .container,
     body.dark-mode .table,
@@ -37,7 +58,6 @@
     body.dark-mode .table-light td {
       background-color: #242424 !important; color: #f1f1f1 !important;
     }
-
     body.dark-mode .form-control,
     body.dark-mode .form-select,
     body.dark-mode input,
@@ -45,32 +65,27 @@
     body.dark-mode textarea {
       background-color: #2a2a2a !important; color: #f1f1f1 !important; border: 1px solid #555 !important;
     }
-    body.dark-mode input::placeholder, body.dark-mode textarea::placeholder { color: #aaa !important; }
     body.dark-mode .form-select option { background-color: #2a2a2a; color: #f1f1f1; }
     body.dark-mode .form-control:focus, body.dark-mode .form-select:focus {
       background-color: #2a2a2a !important; color: #fff !important;
       border-color: #6ea8fe !important; box-shadow: 0 0 0 .2rem rgba(13,110,253,.25) !important;
     }
-
-    .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
-    .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
-    .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
-    .btn-elevate:focus-visible { outline: none; box-shadow: 0 0 0 .22rem rgba(13,110,253,.35); }
     body.dark-mode .btn { border-color: #555 !important; }
     body.dark-mode .btn-outline-light { color: #f1f1f1 !important; border-color: #777 !important; }
     body.dark-mode .btn-outline-light:hover { background-color: #2a2a2a !important; }
     body.dark-mode .btn-primary { background-color: #0d6efd !important; border-color: #0d6efd !important; }
-
     body.dark-mode .badge, body.dark-mode .alert { color: #f1f1f1 !important; }
 
+    /* Kart ve buton estetiği */
     .card-elevate { border: 1px solid rgba(0,0,0,.06); box-shadow: 0 6px 18px rgba(0,0,0,.08); border-radius: 14px; }
     .card-elevate:hover { box-shadow: 0 10px 24px rgba(0,0,0,.12); }
     body.dark-mode .card-elevate { border-color: #333; box-shadow: 0 6px 18px rgba(0,0,0,.6); }
     body.dark-mode .card-elevate:hover { box-shadow: 0 10px 28px rgba(0,0,0,.7); }
 
-    .ripple-wrap { position: relative; overflow: hidden; }
-    .ripple { position: absolute; border-radius: 50%; transform: scale(0); opacity: .55; animation: ripple .5s ease-out; background: currentColor; pointer-events: none; }
-    @keyframes ripple { to { transform: scale(12); opacity: 0; } }
+    .btn-elevate { transform: translateY(0); box-shadow: 0 2px 6px rgba(0,0,0,.12); border-radius: 10px; }
+    .btn-elevate:hover { transform: translateY(-1px); box-shadow: 0 6px 14px rgba(0,0,0,.18); }
+    .btn-elevate:active { transform: translateY(0); box-shadow: 0 3px 8px rgba(0,0,0,.16); }
+    .btn-elevate:focus-visible { outline: none; box-shadow: 0 0 0 .22rem rgba(13,110,253,.35); }
 
     .nav-link-modern { border-radius: 8px; padding: .5rem .75rem; }
     .navbar-dark .nav-link-modern:hover { background: rgba(255,255,255,.12); }
@@ -78,17 +93,27 @@
     body.dark-mode .navbar .nav-link-modern:hover { background: rgba(255,255,255,.10); }
     body.dark-mode .navbar .nav-link-modern.active { background: rgba(255,255,255,.18); }
 
+    .ripple-wrap { position: relative; overflow: hidden; }
+    .ripple { position: absolute; border-radius: 50%; transform: scale(0); opacity: .55; animation: ripple .5s ease-out; background: currentColor; pointer-events: none; }
+    @keyframes ripple { to { transform: scale(12); opacity: 0; } }
+
     #themeToggle i { transition: transform .18s ease; display: inline-block; }
     #themeToggle:active i { transform: scale(.9) rotate(-8deg); }
+
+    footer.app-footer { font-size: .9rem; color: #6c757d; }
+    body.dark-mode footer.app-footer { color: #c7c7c7; }
+
+    /* Toast konumu */
+    #toasts { z-index: 1080; }
   </style>
 </head>
-<body class="bg-light">
+<body class="bg-app">
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-3 sticky-top shadow-sm">
   <div class="container-fluid">
     <a class="navbar-brand d-flex align-items-center gap-2" href="{{ url_for('dashboard') }}">
       <img src="{{ url_for('static', filename='images/karacabey-logo.png') }}" alt="Karacabey Belediyesi" height="32" class="d-inline-block align-text-top" />
-      <span class="fw-semibold">BIM Görev Takip</span>
+      <span class="fw-semibold">BİM Görev Takip</span>
     </a>
 
     {% if session.get('user_id') %}
@@ -100,25 +125,25 @@
       <div class="collapse navbar-collapse" id="navbarNav">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           <li class="nav-item">
-            <a class="nav-link nav-link-modern {{ 'active' if request.endpoint == 'dashboard' else '' }}"
+            <a class="nav-link nav-link-modern {{ 'active' if (request.endpoint|default('') == 'dashboard') else '' }}"
                href="{{ url_for('dashboard') }}">
               <i class="bi bi-list-task me-1"></i> Tüm Görevler
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link nav-link-modern {{ 'active' if request.endpoint == 'assigned_tasks' else '' }}"
+            <a class="nav-link nav-link-modern {{ 'active' if (request.endpoint|default('') == 'assigned_tasks') else '' }}"
                href="{{ url_for('assigned_tasks') }}">
               <i class="bi bi-person-check-fill me-1"></i> Bana Atananlar
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link nav-link-modern {{ 'active' if request.endpoint == 'completed_tasks' else '' }}"
+            <a class="nav-link nav-link-modern {{ 'active' if (request.endpoint|default('') == 'completed_tasks') else '' }}"
                href="{{ url_for('completed_tasks') }}">
               <i class="bi bi-check2-circle me-1"></i> Tamamlanan Görevler
             </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link nav-link-modern {{ 'active' if request.endpoint == 'report' else '' }}"
+            <a class="nav-link nav-link-modern {{ 'active' if (request.endpoint|default('') == 'report') else '' }}"
                href="{{ url_for('report') }}">
               <i class="bi bi-graph-up-arrow me-1"></i> Raporlama
             </a>
@@ -126,7 +151,7 @@
 
           {% if session.get('role') == 'admin' %}
           <li class="nav-item">
-            <a class="nav-link nav-link-modern {{ 'active' if request.endpoint == 'admin_users' else '' }}"
+            <a class="nav-link nav-link-modern {{ 'active' if (request.endpoint|default('') == 'admin_users') else '' }}"
                href="{{ url_for('admin_users') }}">
               <i class="bi bi-people-fill me-1"></i> Kullanıcılar
             </a>
@@ -137,44 +162,78 @@
         <div class="d-flex align-items-center gap-2">
           {% if session.get('username') %}
             <span class="navbar-text text-white me-2">
-              <i class="bi bi-person-circle me-1"></i> <strong>{{ session['username'] }}</strong>
+              <i class="bi bi-person-circle me-1"></i>
+              <strong>{{ session['username'] }}</strong>
               {% if session.get('role') == 'admin' %}
                 <span class="badge bg-warning text-dark ms-2">Admin</span>
               {% endif %}
             </span>
           {% endif %}
+
           <a class="btn btn-outline-light btn-elevate ripple-wrap" href="{{ url_for('logout') }}">
             <i class="bi bi-box-arrow-right me-1"></i> Çıkış Yap
           </a>
+
           <button id="themeToggle" class="btn btn-outline-light btn-elevate ripple-wrap" type="button" aria-label="Tema Değiştir">
             <i class="bi bi-moon-fill"></i>
           </button>
         </div>
       </div>
     {% endif %}
-
   </div>
 </nav>
 
+<!-- Toast container (flash mesajları buraya düşecek) -->
+<div id="toasts" class="position-fixed bottom-0 end-0 p-3"></div>
+
+<!-- Sayfa başlığı / aksiyonları için isteğe bağlı alan -->
 <div class="container">
+  {% block page_header %}{% endblock %}
+</div>
+
+<!-- Sayaçlar/üst özetler için alan -->
+{% block pre_content %}{% endblock %}
+
+<!-- Sayfa içeriği -->
+<div class="container my-3">
   {% block content %}{% endblock %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<footer class="app-footer text-center py-4 mt-4">
+  <div class="container">
+    <div>© 2025 Karacabey Belediyesi Bilgi İşlem</div>
+    <div class="small">Sürüm: {{ config.get('APP_VERSION', 'local-dev') }}</div>
+  </div>
+</footer>
 
+<!-- JS -->
+<script defer src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+{% block extra_scripts %}{% endblock %}
+
+<!-- Tema ve ripple + flash->toast -->
+{% with msgs = get_flashed_messages(with_categories=true) %}
 <script>
 (function () {
   const body = document.body;
+
+  // Başlangıç teması
   try {
     const saved = localStorage.getItem('theme');
-    if (!saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      body.classList.add('dark-mode'); localStorage.setItem('theme', 'dark');
-    } else if (saved === 'dark') {
+    const preferDark = !saved && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    if ((saved === 'dark') || preferDark) {
       body.classList.add('dark-mode');
+      document.documentElement.setAttribute('data-bs-theme', 'dark');
+      document.getElementById('meta-theme-color')?.setAttribute('content', '#121212');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      document.documentElement.setAttribute('data-bs-theme', 'light');
+      document.getElementById('meta-theme-color')?.setAttribute('content', '#0d6efd');
     }
   } catch (e) {}
 
   document.addEventListener('DOMContentLoaded', function () {
+    // Tema düğmesi
     const btn = document.getElementById('themeToggle');
     if (btn) {
       const setIcon = () => {
@@ -185,11 +244,15 @@
       setIcon();
       btn.addEventListener('click', function () {
         body.classList.toggle('dark-mode');
-        try { localStorage.setItem('theme', body.classList.contains('dark-mode') ? 'dark' : 'light'); } catch (e) {}
+        const isDark = body.classList.contains('dark-mode');
+        document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+        document.getElementById('meta-theme-color')?.setAttribute('content', isDark ? '#121212' : '#0d6efd');
+        try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch (e) {}
         setIcon();
       });
     }
 
+    // Ripple effect
     document.addEventListener('click', function(e) {
       const target = e.target.closest('.ripple-wrap');
       if (!target) return;
@@ -203,8 +266,33 @@
       target.appendChild(ripple);
       setTimeout(() => ripple.remove(), 500);
     }, false);
+
+    // Bootstrap Tooltip
+    const tooltipEls = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipEls.forEach(el => new bootstrap.Tooltip(el));
+
+    // Flash -> Toast
+    const msgs = {{ msgs|tojson }};
+    const ctn = document.getElementById('toasts');
+    msgs.forEach(([cat, text])=>{
+      const toast = document.createElement('div');
+      const bg = (cat==='success')?'text-bg-success'
+                :(cat==='warning')?'text-bg-warning'
+                :(cat==='danger')?'text-bg-danger'
+                :'text-bg-primary';
+      toast.className = `toast align-items-center border-0 ${bg}`;
+      toast.role = 'alert'; toast.ariaLive='assertive'; toast.ariaAtomic='true';
+      toast.innerHTML = `
+        <div class="d-flex">
+          <div class="toast-body">${text}</div>
+          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Kapat"></button>
+        </div>`;
+      ctn.appendChild(toast);
+      new bootstrap.Toast(toast, { delay: 4200, autohide: true }).show();
+    });
   });
 })();
 </script>
+{% endwith %}
 </body>
 </html>

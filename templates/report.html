@@ -1,60 +1,181 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import status_badge %}
+{% block title %}Rapor{% endblock %}
 
-{% block title %}Görev Raporu{% endblock %}
+{% block extra_head %}
+<style>
+  .clip { max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  @media (max-width: 992px){ .clip { max-width: 160px; } }
+  .table thead th { font-weight:600; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="mb-0">Tüm Görevlerin Raporu</h3>
-        <div>
-            <a href="{{ url_for('export_excel') }}" class="btn btn-success btn-sm me-2">
-                <i class="bi bi-file-earmark-excel-fill me-1"></i> Excel'e Aktar
-            </a>
-            <a href="{{ url_for('export_pdf') }}" class="btn btn-danger btn-sm">
-                <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF'e Aktar
-            </a>
+{# --- Güvenli varsayılanlar / türevler --- #}
+{% set _SD = (start_date|string) if start_date else '' %}
+{% set _ED = (end_date|string) if end_date else '' %}
+{% set _CUR = request.args.get('status') or '' %}
+{% set _MINE = True if (mine|string) in ['1','true','True'] else False %}
+{% set _ASSIGNED_RAW = (assigned|string) if assigned else '' %}
+{% set _ME = (session.get('user_id')|string) %}
+{% set _ASSIGNED_ME = (_ASSIGNED_RAW == _ME) %}
+
+<div class="d-flex flex-wrap align-items-center justify-content-between mb-3 gap-2">
+  <div class="d-flex align-items-center gap-2">
+    <i class="bi bi-clipboard-data text-primary fs-3"></i>
+    <div>
+      <h1 class="h4 mb-0 fw-bold">Görev Raporu</h1>
+      <div class="text-muted small">Filtrele, dışa aktar ve ayrıntıları incele</div>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-success btn-elevate ripple-wrap"
+       href="{{ url_for('export_excel',
+                        start_date=_SD or None,
+                        end_date=_ED or None,
+                        status=_CUR or None,
+                        mine=1 if _MINE else None,
+                        assigned=_ME if _ASSIGNED_ME else None) }}"
+       data-bs-toggle="tooltip" title="Excel'e aktar">
+      <i class="bi bi-file-earmark-excel"></i> Excel
+    </a>
+    <a class="btn btn-outline-danger btn-elevate ripple-wrap"
+       href="{{ url_for('export_pdf',
+                        start_date=_SD or None,
+                        end_date=_ED or None,
+                        status=_CUR or None,
+                        mine=1 if _MINE else None,
+                        assigned=_ME if _ASSIGNED_ME else None) }}"
+       target="_blank" data-bs-toggle="tooltip" title="PDF'e aktar">
+      <i class="bi bi-filetype-pdf"></i> PDF
+    </a>
+    <a class="btn btn-primary btn-elevate ripple-wrap" data-bs-toggle="collapse" href="#filters" role="button" aria-expanded="true" aria-controls="filters">
+      <i class="bi bi-funnel"></i> Filtreler
+    </a>
+  </div>
+</div>
+
+<div class="collapse show" id="filters">
+  <div class="card card-elevate mb-3">
+    <div class="card-body">
+      <form class="row g-3 align-items-end" method="get" action="{{ url_for('report') }}">
+        <div class="col-12 col-md-3">
+          <label class="form-label">Başlangıç Tarihi</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+            <input type="date" name="start_date" value="{{ _SD }}" class="form-control">
+          </div>
         </div>
+        <div class="col-12 col-md-3">
+          <label class="form-label">Bitiş Tarihi</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-calendar2"></i></span>
+            <input type="date" name="end_date" value="{{ _ED }}" class="form-control">
+          </div>
+        </div>
+
+        {# Durumlar: Veritabanı ile uyumlu kanonik değerler #}
+        <div class="col-12 col-md-4">
+          <label class="form-label">Durum</label>
+          <select name="status" class="form-select">
+            <option value="" {{ '' == _CUR and 'selected' or '' }}>Tümü</option>
+            <option value="Planlandi"   {{ 'Planlandi'   == _CUR and 'selected' or '' }}>Planlandı</option>
+            <option value="DevamEdiyor" {{ 'DevamEdiyor' == _CUR and 'selected' or '' }}>Devam Ediyor</option>
+            <option value="Tamamlandi"  {{ 'Tamamlandi'  == _CUR and 'selected' or '' }}>Tamamlandı</option>
+          </select>
+        </div>
+
+        <div class="col-6 col-md-1 form-check mt-4">
+          <input class="form-check-input" type="checkbox" name="mine" value="1" id="mine" {{ _MINE and 'checked' or '' }}>
+          <label class="form-check-label" for="mine">Benim</label>
+        </div>
+        <div class="col-6 col-md-1 form-check mt-4">
+          {# 'Bana atanan' filtresi: assigned paramına kendi user_id değerini gönderir #}
+          <input class="form-check-input" type="checkbox" name="assigned" id="assigned" value="{{ _ME }}" {{ _ASSIGNED_ME and 'checked' or '' }}>
+          <label class="form-check-label" for="assigned">Bana</label>
+        </div>
+
+        <div class="col-12 d-flex gap-2">
+          <button class="btn btn-primary btn-elevate ripple-wrap"><i class="bi bi-check2-circle me-1"></i> Uygula</button>
+          <a class="btn btn-light border btn-elevate ripple-wrap" href="{{ url_for('report') }}"><i class="bi bi-arrow-counterclockwise me-1"></i> Sıfırla</a>
+        </div>
+      </form>
     </div>
 
-    {% if tasks %}
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Durum</th>
-                        <th>Gerekli Malzeme</th>
-                        <th>Destek Birimi</th>
-                        <th>Atayan</th>
-                        <th>Atanan</th>
-                        <th>Kabul</th>
-                        <th>Tamamlandı</th>
-                        <th>Açıklama</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["status"] }}</td>
-                            <td>{{ task["materials"] or "-" }}</td>
-                            <td>{{ task["needs_support"] or "-" }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td>{{ task["assignee_name"] }}</td>
-                            <td>{{ task["accepted"] }}</td>
-                            <td>{{ task["completed"] }}</td>
-                            <td>{{ task["completion_note"] or "-" }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p class="text-muted">Raporlanacak görev bulunmamaktadır.</p>
+    {% if _SD or _ED or _CUR or _MINE or _ASSIGNED_ME %}
+    <div class="card-footer bg-body-tertiary">
+      <div class="d-flex flex-wrap gap-2 small">
+        {% if _SD or _ED %}
+          <span class="badge rounded-pill text-bg-secondary"><i class="bi bi-calendar3-range"></i> {{ _SD or '—' }} – {{ _ED or '—' }}</span>
+        {% endif %}
+        {% if _CUR %}
+          <span class="badge rounded-pill text-bg-primary"><i class="bi bi-list-check"></i> {{ _CUR }}</span>
+        {% endif %}
+        {% if _MINE %}
+          <span class="badge rounded-pill text-bg-info"><i class="bi bi-person-badge"></i> Benim</span>
+        {% endif %}
+        {% if _ASSIGNED_ME %}
+          <span class="badge rounded-pill text-bg-warning"><i class="bi bi-person-check"></i> Bana Atanan</span>
+        {% endif %}
+      </div>
+    </div>
     {% endif %}
+  </div>
+</div>
+
+<div class="card card-elevate">
+  <div class="card-body table-responsive">
+    <table class="table table-sm table-hover align-middle">
+      <thead class="table-light position-sticky top-0">
+        <tr>
+          <th class="text-muted">#</th>
+          <th>Başlık</th>
+          <th>Yer</th>
+          <th>Malzemeler</th>
+          <th><i class="bi bi-calendar-event"></i> Tarih</th>
+          <th><i class="bi bi-activity"></i> Durum</th>
+          <th><i class="bi bi-person"></i> Atanan</th>
+          <th><i class="bi bi-hand-thumbs-up"></i> Kabul</th>
+          <th><i class="bi bi-check2-square"></i> Tamam</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in tasks %}
+        <tr>
+          <td class="text-muted">{{ t.id }}</td>
+          <td class="clip" title="{{ t.title or '' }}">{{ t.title or '' }}</td>
+          <td class="clip" title="{{ t.location or '' }}">{{ t.location or '' }}</td>
+          <td class="clip" title="{{ t.materials or '' }}">{{ t.materials or '' }}</td>
+          <td>{{ t.date|safe_date }}</td>
+          <td>{{ status_badge(t.status, t.accepted, t.completed) }}</td>
+          <td>{{ t.assignee.username if t.assignee else (t.assignee_name or '-') }}</td>
+          <td>
+            {% if t.accepted == 'Evet' %}
+              <span class="badge rounded-pill text-bg-success"><i class="bi bi-hand-thumbs-up-fill"></i> Evet</span>
+            {% else %}
+              <span class="badge rounded-pill text-bg-secondary">Hayır</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if t.completed == 'Evet' %}
+              <span class="badge rounded-pill text-bg-success"><i class="bi bi-check2"></i> Evet</span>
+            {% else %}
+              <span class="badge rounded-pill text-bg-secondary">Hayır</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+          <tr>
+            <td colspan="9" class="text-center text-muted py-4">
+              <i class="bi bi-inbox"></i> Kayıt bulunamadı
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer d-flex justify-content-end small text-muted">
+    Toplam: {{ tasks|length }}{% if generated_at %} • Oluşturulma: {{ generated_at }}{% endif %}
+  </div>
 </div>
 {% endblock %}

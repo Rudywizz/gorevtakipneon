@@ -1,22 +1,12 @@
-# Python cache dosyaları
+venv/
 __pycache__/
 *.pyc
 *.pyo
-
-# Sanal ortam klasörleri
-.venv/
-env/
-venv/
-
-# Yerel veritabanı ve instance klasörü
-*.db
 instance/
 .env
-
-# IDE klasörleri
+*.sqlite
+*.sqlite3
+gorev_takip.db
+.DS_Store
 .vscode/
 .idea/
-
-# Çıktılar (raporlar, pdf, excel vs)
-*.xlsx
-*.pdf

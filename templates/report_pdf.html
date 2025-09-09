@@ -1,69 +1,117 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <title>Görev Raporu PDF</title>
-    <style>
-        @font-face {
-            font-family: 'DejaVuSans';
-            src: url('https://cdn.jsdelivr.net/npm/dejavu-fonts-ttf@2.37.0/dejavu-fonts-ttf/ttf/DejaVuSans.ttf') format('truetype');
-        }
+  <meta charset="UTF-8" />
+  <title>Görev Raporu PDF</title>
 
-        body {
-            font-family: 'DejaVuSans', sans-serif;
-            font-size: 12px;
-            margin: 20px;
-        }
+  <style>
+    /* ReportLab'a kayıtlı font adını kullanıyoruz */
+    * { font-family: "DejaVuSans"; color:#202020; }
 
-        h2 {
-            text-align: center;
-        }
+    @page {
+      size: A4;
+      margin: 16mm 14mm 20mm 14mm;
+      /* footer alanı */
+      @frame footer_frame { -pdf-frame-content: footer_content; left:14mm; right:14mm; bottom:10mm; height:10mm; }
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            table-layout: fixed;
-            word-wrap: break-word;
-        }
+    /* ------- HEADER -------- */
+    .header { border-bottom:2px solid #0d6efd; padding:6px 0 8px; margin-bottom:10px; }
+    .row { display: table; width:100%; }
+    .cell { display: table-cell; vertical-align: middle; }
+    .logo { width: 22mm; }              /* sabit, küçük bir alan */
+    .logo img { height: 12mm; width:auto; display:block; } /* LOGO BOYUTU: burayı büyült/küçült */
+    .title-wrap { padding-left: 6mm; }
+    .title { font-size:16pt; font-weight:bold; }
+    .meta { font-size:9pt; color:#666; margin-top:2px; }
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 6px;
-            text-align: left;
-        }
+    /* ------- TABLO -------- */
+    table { width:100%; border-collapse:collapse; table-layout:fixed; }
+    thead th { background:#eef4ff; border:1px solid #d9d9d9; padding:6px; font-size:10pt; }
+    tbody td { border:1px solid #d9d9d9; padding:6px; font-size:10pt; vertical-align:top; word-wrap:break-word; }
+    tbody tr:nth-child(odd) td { background:#fafafa; }
 
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
+    /* Sütun genişlikleri */
+    th.col-gorev,   td.col-gorev   { width:22%; }
+    th.col-yer,     td.col-yer     { width:10%; }
+    th.col-tarih,   td.col-tarih   { width:11%; }
+    th.col-durum,   td.col-durum   { width:12%; }
+    th.col-atayan,  td.col-atayan  { width:11%; }
+    th.col-atanan,  td.col-atanan  { width:11%; }
+    th.col-not,     td.col-not     { width:23%; }
+
+    .muted { color:#666; }
+    .badge { display:inline-block; padding:2px 6px; border-radius:3px; font-size:9pt; line-height:1.2; }
+    .badge-success { background:#28a745; color:#fff; }
+    .badge-warn    { background:#ffc107; color:#000; }
+    .badge-secondary { background:#6c757d; color:#fff; }
+
+    .footer { font-size:9pt; color:#666; }
+  </style>
 </head>
 <body>
-    <h2>Görev Raporu</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Görev</th>
-                <th>Tarih</th>
-                <th>Durum</th>
-                <th>Malzeme</th>
-                <th>Destek</th>
-                <th>Atanan</th>
-                <th>Açıklama</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for task in tasks %}
-            <tr>
-                <td>{{ task["title"] }}</td>
-                <td>{{ task["date"] }}</td>
-                <td>{{ task["status"] }}</td>
-                <td>{{ task["materials"] or "-" }}</td>
-                <td>{{ task["needs_support"] or "-" }}</td>
-                <td>{{ task["assignee_name"] or "-" }}</td>
-                <td>{{ task["completion_note"] or "-" }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+
+  <div class="header">
+    <div class="row">
+      <!-- LOGO: başlığın solunda ve küçük -->
+      <div class="cell logo">
+        <img src="{{ url_for('static', filename='images/karacabey-logo.png') }}" alt="Karacabey Belediyesi">
+      </div>
+      <div class="cell title-wrap">
+        <div class="title">BİM Görev Raporu</div>
+        <div class="meta">
+          Oluşturma: {{ generated_at }} &nbsp;|&nbsp;
+          Kayıt sayısı: {{ tasks|length }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="col-gorev">Görev</th>
+        <th class="col-yer">Yer</th>
+        <th class="col-tarih">Tarih</th>
+        <th class="col-durum">Durum</th>
+        <th class="col-atayan">Atayan</th>
+        <th class="col-atanan">Atanan</th>
+        <th class="col-not">Not</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for t in tasks %}
+      <tr>
+        <td class="col-gorev">
+          <strong>{{ t.title or '-' }}</strong><br/>
+          <span class="muted">Malzemeler:</span> {{ t.materials or '-' }}<br/>
+          <span class="muted">Destek:</span> {{ t.needs_support or '-' }}
+        </td>
+        <td class="col-yer">{{ t.location or '-' }}</td>
+        <td class="col-tarih">{{ t.date or '-' }}</td>
+        <td class="col-durum">
+          {% set s = (t.status or '-')|string %}
+          {% if 'tamam' in s|lower %}
+            <span class="badge badge-success">Tamamlandı</span>
+          {% elif 'devam' in s|lower %}
+            <span class="badge badge-warn">Devam</span>
+          {% elif 'plan' in s|lower %}
+            <span class="badge badge-secondary">Planlandı</span>
+          {% else %}
+            {{ s }}
+          {% endif %}
+        </td>
+        <td class="col-atayan">{{ t.assigner_name or '-' }}</td>
+        <td class="col-atanan">{{ t.assignee_name or '-' }}</td>
+        <td class="col-not">{{ t.completion_note or '-' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <div id="footer_content" class="footer">
+    Onay / İmza
+  </div>
+
 </body>
 </html>

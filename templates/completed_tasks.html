@@ -1,44 +1,243 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import status_badge %}
 
 {% block title %}Tamamlanan Görevler{% endblock %}
 
-{% block content %}
-<div class="container mt-4">
-    <h3 class="mb-4">Tamamlanan Görevlerim</h3>
+{% block page_header %}
+<form class="w-100" onsubmit="event.preventDefault();" id="completedFilters">
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <h5 class="mb-0 d-flex align-items-center gap-2">
+      <i class="bi bi-check2-circle text-success"></i>
+      Tamamlanan Görevlerim
+    </h5>
 
-    {% if tasks %}
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Malzemeler</th>
-                        <th>Destek Birimi</th>
-                        <th>Açıklama</th>
-                        <th>Görevi Giren</th>
-                        <th>Durum</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["materials"] }}</td>
-                            <td>{{ task["needs_support"] }}</td>
-                            <td>{{ task["completion_note"] or "-" }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td><span class="badge bg-success">Tamamlandı</span></td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+    <div class="d-flex flex-wrap align-items-center gap-2">
+      <div class="input-group" style="min-width: 360px; max-width: 520px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input id="searchInp" type="text" class="form-control" placeholder="Ara (görev, yer, atayan, not...)" />
+        <button class="btn btn-outline-secondary" type="button" id="clearSearch">Temizle</button>
+      </div>
+
+      <button class="btn btn-outline-dark btn-elevate" type="button" data-bs-toggle="modal" data-bs-target="#fltModal">
+        <i class="bi bi-sliders"></i> Filtreler
+      </button>
+
+      <button class="btn btn-outline-secondary btn-elevate" type="button" id="printBtn">
+        <i class="bi bi-printer"></i> Yazdır
+      </button>
+      <button class="btn btn-primary btn-elevate" type="button" id="csvBtn">
+        <i class="bi bi-download"></i> CSV İndir
+      </button>
+    </div>
+  </div>
+
+  <div class="text-muted small mt-1">
+    Kayıtlar: <strong id="visibleCount">{{ tasks|length }}</strong> / {{ tasks|length }}
+  </div>
+
+  {# Filtre Modalı: Tarih aralığı #}
+  <div class="modal fade" id="fltModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content card-elevate">
+        <div class="modal-header">
+          <h5 class="modal-title">Detaylı Filtreler</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
         </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label for="dateFrom" class="form-label">Tarih (Başlangıç)</label>
+              <input type="date" class="form-control" id="dateFrom">
+            </div>
+            <div class="col-md-6">
+              <label for="dateTo" class="form-label">Tarih (Bitiş)</label>
+              <input type="date" class="form-control" id="dateTo">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-between">
+          <button type="button" class="btn btn-outline-secondary" id="clearFilters">Temizle</button>
+          <div>
+            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Kapat</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" id="applyFilters">Uygula</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+{% endblock %}
+
+{% block content %}
+<div class="card card-raise">
+  <div class="card-body">
+    {% if tasks %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-striped align-middle" id="completedTable">
+          <thead class="table-light position-sticky top-0">
+            <tr>
+              <th style="width:30%">Görev</th>
+              <th>Yer</th>
+              <th>Tarih</th>
+              <th>Durum</th>
+              <th>Atayan</th>
+              <th>Not</th>
+              <th style="width:120px">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for t in tasks %}
+            <tr data-date="{{ t.date|safe_date }}">
+              <td>
+                <div class="fw-semibold clip" data-bs-toggle="tooltip" title="{{ t.title or '' }}">{{ t.title or '—' }}</div>
+                <div class="text-muted small">
+                  {% if t.materials %}<i class="bi bi-tools me-1"></i>{{ t.materials }}{% endif %}
+                  {% if t.needs_support %}<span class="ms-2"><i class="bi bi-life-preserver me-1"></i>{{ t.needs_support }}</span>{% endif %}
+                </div>
+              </td>
+              <td class="clip" data-bs-toggle="tooltip" title="{{ t.location or '' }}">{{ t.location or '—' }}</td>
+              <td>{{ t.date|safe_date }}</td>
+              <td class="text-nowrap">
+                {{ status_badge(t.status) }}
+              </td>
+              <td>{{ t.assigner_name or '—' }}</td>
+              <td class="text-truncate" style="max-width:260px;">
+                {{ (t.completion_note or '—')[:120] }}{% if t.completion_note and t.completion_note|length > 120 %}…{% endif %}
+              </td>
+              <td class="text-nowrap">
+                {% if t.completion_note %}
+                <button type="button" class="btn btn-sm btn-outline-secondary btn-elevate"
+                        data-bs-toggle="modal" data-bs-target="#noteModal"
+                        data-note="{{ t.completion_note|e }}">
+                  <i class="bi bi-journal-text me-1"></i>Notu Gör
+                </button>
+                {% else %}
+                <span class="text-muted small">Not yok</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-        <p class="text-muted">Henüz tamamladığınız bir görev bulunmamaktadır.</p>
+      <div class="text-center py-5">
+        <div class="display-6 mb-2">✅</div>
+        <p class="mb-1">Henüz tamamlanan görevin yok.</p>
+        <p class="text-muted">Genel raporlar için <a href="{{ url_for('report') }}">Raporlama</a> sayfasına gidebilirsin.</p>
+      </div>
     {% endif %}
+  </div>
 </div>
+
+{# Not Gösterim Modali #}
+<div class="modal fade" id="noteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content card-elevate">
+      <div class="modal-header">
+        <h5 class="modal-title">Tamamlama Notu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Kapat"></button>
+      </div>
+      <div class="modal-body">
+        <pre class="mb-0" id="noteContent" style="white-space: pre-wrap;"></pre>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Not modal: içerik doldur
+  const noteModal = document.getElementById('noteModal');
+  if (noteModal) {
+    noteModal.addEventListener('show.bs.modal', function (ev) {
+      const btn = ev.relatedTarget;
+      const note = btn?.getAttribute('data-note') || '';
+      noteModal.querySelector('#noteContent').textContent = note;
+    });
+  }
+
+  // Arama + Tarih aralığı filtreleri + CSV + Yazdır
+  (function () {
+    const table = document.getElementById('completedTable');
+    if (!table) return;
+    const rows = Array.from(table.querySelectorAll('tbody tr'));
+    const searchInp = document.getElementById('searchInp');
+    const clearSearch = document.getElementById('clearSearch');
+    const dateFrom = document.getElementById('dateFrom');
+    const dateTo = document.getElementById('dateTo');
+    const visibleCount = document.getElementById('visibleCount');
+
+    function inRange(rowDate, fromVal, toVal) {
+      // rowDate ISO (YYYY-MM-DD) olduğundan string karşılaştırma güvenli
+      if (!rowDate) return true;
+      if (fromVal && rowDate < fromVal) return false;
+      if (toVal && rowDate > toVal) return false;
+      return true;
+    }
+
+    function applyFilters() {
+      const q = (searchInp?.value || '').toLowerCase();
+      const f = dateFrom?.value || '';
+      const t = dateTo?.value || '';
+
+      let count = 0;
+      rows.forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        const rowDate = tr.getAttribute('data-date') || '';
+        const passText = text.indexOf(q) > -1;
+        const passDate = inRange(rowDate, f, t);
+        const show = passText && passDate;
+        tr.style.display = show ? '' : 'none';
+        if (show) count++;
+      });
+      if (visibleCount) visibleCount.textContent = count;
+    }
+
+    if (searchInp) searchInp.addEventListener('keyup', applyFilters);
+    if (dateFrom) dateFrom.addEventListener('change', applyFilters);
+    if (dateTo)   dateTo.addEventListener('change', applyFilters);
+    document.getElementById('applyFilters')?.addEventListener('click', applyFilters);
+
+    document.getElementById('clearFilters')?.addEventListener('click', () => {
+      if (dateFrom) dateFrom.value = '';
+      if (dateTo) dateTo.value = '';
+      applyFilters();
+    });
+
+    document.getElementById('clearSearch')?.addEventListener('click', () => {
+      if (searchInp) searchInp.value = '';
+      applyFilters();
+    });
+
+    // CSV export (sadece görünür satırlar)
+    document.getElementById('csvBtn')?.addEventListener('click', () => {
+      const visibleRows = rows.filter(tr => tr.style.display !== 'none');
+      const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+      // İlk 6 sütun: Görev, Yer, Tarih, Durum, Atayan, Not
+      const dataRows = visibleRows.map(tr =>
+        Array.from(tr.querySelectorAll('td')).slice(0, 6).map(td => td.innerText.trim())
+      );
+      const csv = [headers.slice(0,6)].concat(dataRows)
+        .map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'tamamlanan_gorevler.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Yazdır
+    document.getElementById('printBtn')?.addEventListener('click', () => {
+      window.print();
+    });
+  })();
+</script>
 {% endblock %}

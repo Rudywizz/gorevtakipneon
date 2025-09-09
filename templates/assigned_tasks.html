@@ -1,98 +1,190 @@
 {% extends 'base.html' %}
+{% from '_macros.html' import status_badge %}
 
-{% block title %}Bana Atanan Görevler{% endblock %}
+{% block title %}Bana Atananlar{% endblock %}
+
+{% block page_header %}
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+  <h5 class="mb-0 d-flex align-items-center gap-2">
+    <i class="bi bi-person-check-fill text-primary"></i>
+    Bana Atanan Görevler
+  </h5>
+
+  <div class="input-group" style="max-width:520px;">
+    <span class="input-group-text"><i class="bi bi-search"></i></span>
+    <input id="assignedSearch" type="text" class="form-control"
+           placeholder="Tabloda ara (görev, yer, atayan...)">
+    <button class="btn btn-outline-secondary" type="button" id="assignedSearchClear">Temizle</button>
+  </div>
+</div>
+<div class="text-muted small">Toplam: <strong>{{ tasks|length }}</strong> görev</div>
+{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h3 class="mb-3">Bana Atanan Görevler</h3>
+{# Bu sayfada 'tasks': assigned_to = current_user ve completed = 'Hayir' #}
+{% set waiting_tasks  = tasks | selectattr('accepted','equalto','Bekliyor') | list %}
+{% set accepted_tasks = tasks | selectattr('accepted','equalto','Evet')     | list %}
 
-    <!-- Bekleyen Görevler -->
-    <h5 class="text-secondary">Bekleyen Görevler</h5>
-    {% set waiting_tasks = tasks
-        | selectattr("accepted", "equalto", "Bekliyor")
-        | selectattr("assigned_to", "equalto", current_user)
-        | list %}
+{# -------------------- Bekleyen Görevler -------------------- #}
+<div class="card card-raise mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h6 class="mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-hourglass text-muted"></i> Bekleyen Görevler
+      </h6>
+      <span class="badge bg-secondary">{{ waiting_tasks|length }}</span>
+    </div>
+
     {% if waiting_tasks %}
-        <div class="table-responsive mb-5">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Durum</th>
-                        <th>Gerekli Malzeme</th>
-                        <th>Destek Birimi</th>
-                        <th>Görevi Giren</th>
-                        <th>İşlem</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in waiting_tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["status"] }}</td>
-                            <td>{{ task["materials"] }}</td>
-                            <td>{{ task["needs_support"] }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td>
-                                <form method="POST" action="{{ url_for('accept_task', task_id=task["id"]) }}">
-                                    <button type="submit" class="btn btn-sm btn-success">Kabul Et</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-striped align-middle assigned-table">
+          <thead class="table-light position-sticky top-0">
+            <tr>
+              <th style="width:32%">Görev</th>
+              <th>Yer</th>
+              <th>Tarih</th>
+              <th>Durum</th>
+              <th>Atayan</th>
+              <th style="width:200px">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in waiting_tasks %}
+            <tr>
+              <td>
+                <div class="fw-semibold clip" data-bs-toggle="tooltip" title="{{ task.title or '' }}">
+                  {{ task.title or '—' }}
+                </div>
+                <div class="text-muted small">
+                  {% if task.materials %}
+                    <i class="bi bi-tools me-1"></i>{{ task.materials }}
+                  {% endif %}
+                  {% if task.needs_support %}
+                    <span class="ms-2">
+                      <i class="bi bi-life-preserver me-1"></i>{{ task.needs_support }}
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="clip" data-bs-toggle="tooltip" title="{{ task.location or '' }}">{{ task.location or '—' }}</td>
+              <td>{{ task.date|safe_date }}</td>
+              <td class="text-nowrap">
+                <span class="badge rounded-pill text-bg-secondary me-1">Kabul Bekliyor</span>
+                {{ status_badge(task.status) }}
+              </td>
+              <td>{{ task.assigner_name or '—' }}</td>
+              <td class="text-nowrap">
+                <form method="POST" action="{{ url_for('accept_task', task_id=task.id) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm btn-outline-primary btn-elevate"
+                          data-bs-toggle="tooltip" data-bs-title="Görevi kabul et">
+                    <i class="bi bi-check2-square me-1"></i>Kabul Et
+                  </button>
+                </form>
+                <a href="{{ url_for('complete_task', task_id=task.id) }}"
+                   class="btn btn-sm btn-success btn-elevate ms-1"
+                   data-bs-toggle="tooltip" data-bs-title="Görevi tamamla ve not ekle">
+                  <i class="bi bi-check2-circle me-1"></i>Tamamla
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     {% else %}
-        <p class="text-muted">Bekleyen görev bulunmamaktadır.</p>
+      <div class="text-muted">Bekleyen görev bulunmuyor.</div>
     {% endif %}
-
-    <!-- Kabul Edilen Görevler -->
-    <h5 class="text-secondary">Kabul Edilen Görevler</h5>
-    {% set accepted_tasks = tasks
-        | selectattr("accepted", "equalto", "Evet")
-        | selectattr("completed", "equalto", "Hayir")
-        | selectattr("assigned_to", "equalto", current_user)
-        | list %}
-    {% if accepted_tasks %}
-        <div class="table-responsive">
-            <table class="table table-bordered align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th>Görev</th>
-                        <th>Yer</th>
-                        <th>Tarih</th>
-                        <th>Durum</th>
-                        <th>Gerekli Malzeme</th>
-                        <th>Destek Birimi</th>
-                        <th>Görevi Giren</th>
-                        <th>İşlem</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for task in accepted_tasks %}
-                        <tr>
-                            <td>{{ task["title"] }}</td>
-                            <td>{{ task["location"] }}</td>
-                            <td>{{ task["date"] }}</td>
-                            <td>{{ task["status"] }}</td>
-                            <td>{{ task["materials"] }}</td>
-                            <td>{{ task["needs_support"] }}</td>
-                            <td>{{ task["assigner_name"] }}</td>
-                            <td>
-                                <a href="{{ url_for('complete_task', task_id=task["id"]) }}" class="btn btn-sm btn-outline-primary">İşi Sonlandır</a>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <p class="text-muted">Kabul edilmiş ancak tamamlanmamış görev bulunmamaktadır.</p>
-    {% endif %}
+  </div>
 </div>
+
+{# -------------------- Kabul Edilen Görevler -------------------- #}
+<div class="card card-raise">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-2">
+      <h6 class="mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-hand-thumbs-up text-primary"></i> Kabul Edilen Görevler
+      </h6>
+      <span class="badge bg-primary">{{ accepted_tasks|length }}</span>
+    </div>
+
+    {% if accepted_tasks %}
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-striped align-middle assigned-table">
+          <thead class="table-light position-sticky top-0">
+            <tr>
+              <th style="width:32%">Görev</th>
+              <th>Yer</th>
+              <th>Tarih</th>
+              <th>Durum</th>
+              <th>Atayan</th>
+              <th style="width:170px">İşlem</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for task in accepted_tasks %}
+            <tr>
+              <td>
+                <div class="fw-semibold clip" data-bs-toggle="tooltip" title="{{ task.title or '' }}">
+                  {{ task.title or '—' }}
+                </div>
+                <div class="text-muted small">
+                  {% if task.materials %}
+                    <i class="bi bi-tools me-1"></i>{{ task.materials }}
+                  {% endif %}
+                  {% if task.needs_support %}
+                    <span class="ms-2">
+                      <i class="bi bi-life-preserver me-1"></i>{{ task.needs_support }}
+                    </span>
+                  {% endif %}
+                </div>
+              </td>
+              <td class="clip" data-bs-toggle="tooltip" title="{{ task.location or '' }}">{{ task.location or '—' }}</td>
+              <td>{{ task.date|safe_date }}</td>
+              <td class="text-nowrap">
+                <span class="badge rounded-pill text-bg-primary me-1">Kabul Edildi</span>
+                {{ status_badge(task.status) }}
+              </td>
+              <td>{{ task.assigner_name or '—' }}</td>
+              <td class="text-nowrap">
+                <a href="{{ url_for('complete_task', task_id=task.id) }}"
+                   class="btn btn-sm btn-success btn-elevate"
+                   data-bs-toggle="tooltip" data-bs-title="Görevi tamamla ve not ekle">
+                  <i class="bi bi-check2-circle me-1"></i>İşi Sonlandır
+                </a>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="text-muted">Kabul edilmiş ancak tamamlanmamış görev bulunmuyor.</div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  // Tooltip'ler
+  [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    .map(el => new bootstrap.Tooltip(el));
+
+  // Basit tablo araması (iki tabloyu birlikte filtreler)
+  (function () {
+    const q = document.getElementById('assignedSearch');
+    const clear = document.getElementById('assignedSearchClear');
+    const rows = document.querySelectorAll('.assigned-table tbody tr');
+
+    function filter() {
+      const s = (q.value || '').toLowerCase();
+      rows.forEach(tr => {
+        const text = tr.innerText.toLowerCase();
+        tr.style.display = text.indexOf(s) > -1 ? '' : 'none';
+      });
+    }
+    if (q) q.addEventListener('keyup', filter);
+    if (clear) clear.addEventListener('click', () => { q.value=''; filter(); });
+  })();
+</script>
 {% endblock %}

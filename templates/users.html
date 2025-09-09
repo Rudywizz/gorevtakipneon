@@ -1,65 +1,161 @@
-{% extends 'base.html' %}
-
-{% block title %}Kullanıcı Yönetimi{% endblock %}
-
+{% extends "base.html" %}
 {% block content %}
-<div class="card shadow">
-  <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-      <h4 class="card-title m-0">Kullanıcılar</h4>
-      <span class="text-muted small">Toplam: {{ users|length }}</span>
+
+<div class="container mt-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">Kullanıcı Yönetimi</h3>
+    <span class="text-muted">Toplam: {{ total }}</span>
+  </div>
+
+  <!-- Filtreler -->
+  <form class="row g-2 mb-3" method="get" action="{{ url_for('admin_users') }}">
+    <div class="col-md-4">
+      <input type="text" class="form-control" name="q" placeholder="Ara (kullanıcı/e-posta)" value="{{ q or '' }}">
     </div>
+    <div class="col-md-3">
+      <select class="form-select" name="role">
+        <option value="">Rol (hepsi)</option>
+        <option value="user"  {{ 'selected' if role_f=='user'  }}>User</option>
+        <option value="admin" {{ 'selected' if role_f=='admin' }}>Admin</option>
+      </select>
+    </div>
+    <div class="col-md-3">
+      <!-- is_active olmayan eski DB’de fallback modunda bu filtre etkisizdir -->
+      <select class="form-select" name="active">
+        <option value="">Durum (hepsi)</option>
+        <option value="1" {{ 'selected' if status_f=='1' }}>Aktif</option>
+        <option value="0" {{ 'selected' if status_f=='0' }}>Pasif</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-grid">
+      <button class="btn btn-primary">Filtrele</button>
+    </div>
+  </form>
 
-    <div class="table-responsive">
-      <table class="table table-bordered align-middle">
-        <thead class="table-light">
-          <tr>
-            <th style="width:80px;">ID</th>
-            <th>Kullanıcı Adı</th>
-            <th style="width:140px;">Rol</th>
-            <th style="width:280px;">İşlemler</th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for u in users %}
-          <tr>
-            <td>{{ u.id }}</td>
-            <td>{{ u.username }}</td>
-            <td>
-              {% if u.role == 'admin' %}
-                <span class="badge bg-danger">admin</span>
-              {% else %}
-                <span class="badge bg-secondary">user</span>
-              {% endif %}
-            </td>
-            <td class="d-flex gap-2">
-              {% if u.role != 'admin' %}
-                <form method="post" action="{{ url_for('admin_make_admin', user_id=u.id) }}">
-                  <button class="btn btn-sm btn-outline-danger">Admin Yap</button>
-                </form>
-              {% endif %}
-
-              {% if u.role != 'user' %}
-                <form method="post" action="{{ url_for('admin_make_user', user_id=u.id) }}">
-                  <button class="btn btn-sm btn-outline-secondary">User Yap</button>
-                </form>
-              {% endif %}
-
-              {% if u.id != session.get('user_id') %}
-                <form method="post"
-                      action="{{ url_for('admin_delete_user', user_id=u.id) }}"
-                      onsubmit="return confirm('Bu kullanıcıyı silmek istiyor musunuz?');">
-                  <button class="btn btn-sm btn-outline-danger">Sil</button>
-                </form>
-              {% else %}
-                <button class="btn btn-sm btn-light" disabled>Kendi hesabın</button>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
+  <!-- Yeni kullanıcı oluştur -->
+  <div class="card mb-3">
+    <div class="card-body">
+      <form class="row g-2" method="post" action="{{ url_for('admin_create_user') }}">
+        <div class="col-md-2">
+          <input class="form-control" name="username" placeholder="Kullanıcı adı" required>
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" name="email" placeholder="E-posta (opsiyonel)">
+        </div>
+        <div class="col-md-3">
+          <input class="form-control" name="password" placeholder="Geçici şifre" required>
+        </div>
+        <div class="col-md-2">
+          <select class="form-select" name="role">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <div class="col-md-2 d-grid">
+          <button class="btn btn-success">Oluştur</button>
+        </div>
+      </form>
+      <small class="text-muted">Yeni kullanıcılar ilk girişte şifre değiştirmek zorundadır.</small>
     </div>
   </div>
+
+  <!-- Liste -->
+  <div class="table-responsive">
+    <table class="table table-sm align-middle">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Kullanıcı</th>
+          <th>E-posta</th>
+          <th>Rol</th>
+          <th>Aktif</th>
+          <th>İlk Girişte Değiştir</th>
+          <th style="width: 440px;">İşlemler</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.id }}</td>
+          <td>{{ u.username }}</td>
+          <td>{{ u.email or '-' }}</td>
+          <td>{{ u.role }}</td>
+          <td>
+            {% set active = (u.is_active if u.is_active is not none else True) %}
+            <span class="badge {{ 'bg-success' if active else 'bg-secondary' }}">{{ 'Aktif' if active else 'Pasif' }}</span>
+          </td>
+          <td>
+            {% set must = (u.must_change_password if u.must_change_password is not none else False) %}
+            <span class="badge {{ 'bg-warning text-dark' if must else 'bg-light text-dark' }}">{{ 'Evet' if must else 'Hayır' }}</span>
+          </td>
+          <td>
+            <div class="d-flex flex-wrap gap-2">
+
+              <!-- Admin / User değiştir -->
+              {% if u.role == 'user' %}
+              <form method="post" action="{{ url_for('admin_make_admin', user_id=u.id) }}">
+                <button class="btn btn-outline-primary btn-sm">Admin yap</button>
+              </form>
+              {% elif u.id != session.get('user_id') %}
+              <form method="post" action="{{ url_for('admin_make_user', user_id=u.id) }}">
+                <button class="btn btn-outline-secondary btn-sm">User yap</button>
+              </form>
+              {% endif %}
+
+              <!-- Aktif/Pasif -->
+              {% if active and u.id != session.get('user_id') %}
+              <form method="post" action="{{ url_for('admin_deactivate_user', user_id=u.id) }}">
+                <button class="btn btn-outline-warning btn-sm">Pasife al</button>
+              </form>
+              {% elif not active %}
+              <form method="post" action="{{ url_for('admin_activate_user', user_id=u.id) }}">
+                <button class="btn btn-outline-success btn-sm">Aktifleştir</button>
+              </form>
+              {% endif %}
+
+              <!-- Şifre sıfırlama linki gönder -->
+              {% if u.email %}
+              <form method="post" action="{{ url_for('admin_reset_password_link', user_id=u.id) }}">
+                <button class="btn btn-outline-info btn-sm">Sıfırlama linki gönder</button>
+              </form>
+              {% endif %}
+
+              <!-- Doğrudan şifre atama -->
+              <form class="d-flex" method="post" action="{{ url_for('admin_set_password', user_id=u.id) }}"
+                    onsubmit="return confirm('Bu kullanıcı için yeni şifre atanacak ve ilk girişte değiştirmesi zorunlu olacak. Onaylıyor musunuz?')">
+                <input class="form-control form-control-sm me-1" name="new_password" placeholder="Yeni şifre" minlength="8" required>
+                <button class="btn btn-outline-dark btn-sm">Ata</button>
+              </form>
+
+              <!-- Sil -->
+              {% if u.id != session.get('user_id') %}
+              <form method="post" action="{{ url_for('admin_delete_user', user_id=u.id) }}"
+                    onsubmit="return confirm('Kalıcı olarak silinsin mi?')">
+                <button class="btn btn-outline-danger btn-sm">Sil</button>
+              </form>
+              {% endif %}
+
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Sayfalama -->
+  {% if pages > 1 %}
+  <nav>
+    <ul class="pagination">
+      {% for p in range(1, pages+1) %}
+      <li class="page-item {{ 'active' if p==page }}">
+        <a class="page-link"
+           href="{{ url_for('admin_users', q=q, role=role_f, active=status_f, page=p) }}">{{ p }}</a>
+      </li>
+      {% endfor %}
+    </ul>
+  </nav>
+  {% endif %}
 </div>
+
 {% endblock %}

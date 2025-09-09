@@ -1,0 +1,66 @@
+{# templates/partials/_stats.html #}
+<div class="container mb-3">
+  {% if stats %}
+  <div class="row g-3">
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card card-elevate h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="text-primary fs-3"><i class="bi bi-list-check"></i></div>
+          <div>
+            <div class="text-muted small">Toplam</div>
+            <div class="fs-5 fw-bold">{{ stats.total }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card card-elevate h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="text-success fs-3"><i class="bi bi-check2-circle"></i></div>
+          <div>
+            <div class="text-muted small">Tamamlanan</div>
+            <div class="fs-5 fw-bold">{{ stats.completed }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card card-elevate h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="text-info fs-3"><i class="bi bi-flag"></i></div>
+          <div>
+            <div class="text-muted small">Planlanan</div>
+            <div class="fs-5 fw-bold">{{ stats.planned }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-6 col-md-4 col-lg">
+      <div class="card card-elevate h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="text-warning fs-3"><i class="bi bi-hourglass-split"></i></div>
+          <div>
+            <div class="text-muted small">Devam Eden</div>
+            <div class="fs-5 fw-bold">{{ stats.in_progress }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-4 col-lg">
+      <div class="card card-elevate h-100">
+        <div class="card-body d-flex align-items-center gap-3">
+          <div class="text-danger fs-3"><i class="bi bi-folder2-open"></i></div>
+          <div>
+            <div class="text-muted small">Açık Görev</div>
+            <div class="fs-5 fw-bold">{{ stats.open }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>

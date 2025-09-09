@@ -1,27 +1,77 @@
 {# templates/_macros.html #}
-{% macro status_badge(status) -%}
-  {# Güvenli normalize: string + lower + trim #}
+{% macro status_badge(status, accepted=None, completed=None) -%}
+  {# ---- normalize helpers ---- #}
   {% set s = (status or '')|string|lower|trim %}
+  {% set a = (accepted or '')|string|lower|trim %}
+  {% set c = (completed or '')|string|lower|trim %}
 
-  {# Kanonik değeri belirle #}
-  {% if s in ['tamamlandi','tamamlandı','completed','complete','done','bitti','evet'] %}
-    {% set canon = 'Tamamlandi' %}
-  {% elif s in ['devamediyor','devam ediyor','in-progress','progress','doing','çalışılıyor','calisiliyor','calisiyor'] %}
-    {% set canon = 'DevamEdiyor' %}
-  {% elif s in ['planlandi','planlandı','planned','planli','planlı','todo','pending','beklemede','bekliyor','hayir'] %}
-    {% set canon = 'Planlandi' %}
+  {# truthy/falsey yorumları (Evet/Hayir/Yes/No/1/0 vs.) #}
+  {% set yes_set = ['evet','yes','true','1','tamamlandi','tamamlandı','done','completed','complete'] %}
+  {% set no_set  = ['hayir','hayır','no','false','0','notdone','incomplete'] %}
+
+  {# status eşanlam kümeleri #}
+  {% set done_set = [
+    'done','completed','complete','tamamlandi','tamamlandı','bitti','bitirildi'
+  ] %}
+  {% set progress_set = [
+    'in-progress','progress','working','doing','devam','devamediyor','devam ediyor','calisiyor','calisiliyor','çalışılıyor','çalışıyor'
+  ] %}
+  {% set planned_set = [
+    'planned','planlandi','planlandı','planli','planlı','todo','pending','beklemede','bekliyor'
+  ] %}
+  {% set waiting_set = [
+    'waiting','onhold','hold','queue','queued','beklemede','bekliyor','askida','askıda'
+  ] %}
+  {% set cancelled_set = [
+    'cancelled','canceled','iptal','iptal edildi','vazgecildi','vazgeçildi'
+  ] %}
+  {% set accepted_set = [
+    'accepted','kabul','kabul edildi','onaylandi','onaylandı'
+  ] %}
+
+  {# accepted/completed alanları durumu etkilesin (varsa) #}
+  {% set is_completed = (c in yes_set) or (s in done_set) %}
+  {% set is_cancelled = (s in cancelled_set) %}
+  {% set is_accepted  = (a in yes_set) or (s in accepted_set) %}
+  {% set is_waiting   = (s in waiting_set) %}
+  {% set is_progress  = (s in progress_set) %}
+  {% set is_planned   = (s in planned_set) %}
+
+  {# öncelik sırası: cancelled > completed > accepted > progress > waiting > planned > default #}
+  {% if is_cancelled %}
+    {% set canon = 'Cancelled' %}
+    {% set label = 'İptal' %}
+    {% set cls = 'text-bg-danger' %}
+  {% elif is_completed %}
+    {% set canon = 'Done' %}
+    {% set label = 'Tamamlandı' %}
+    {% set cls = 'text-bg-success' %}
+  {% elif is_accepted %}
+    {% set canon = 'Accepted' %}
+    {% set label = 'Kabul Edildi' %}
+    {% set cls = 'text-bg-primary' %}
+  {% elif is_progress %}
+    {% set canon = 'InProgress' %}
+    {% set label = 'Devam Ediyor' %}
+    {% set cls = 'text-bg-warning text-dark' %}
+  {% elif is_waiting %}
+    {% set canon = 'Waiting' %}
+    {% set label = 'Beklemede' %}
+    {% set cls = 'text-bg-info text-dark' %}
+  {% elif is_planned %}
+    {% set canon = 'Planned' %}
+    {% set label = 'Planlandı' %}
+    {% set cls = 'text-bg-secondary' %}
   {% else %}
-    {% set canon = None %}
+    {% set canon = '' %}
+    {% set label = (status or '—') %}
+    {% set cls = 'text-bg-light text-dark' %}
   {% endif %}
 
-  {# Rozet render #}
-  {% if canon == 'Tamamlandi' %}
-    <span class="badge bg-success status-badge" data-status="Tamamlandi">Tamamlandı</span>
-  {% elif canon == 'DevamEdiyor' %}
-    <span class="badge bg-warning text-dark status-badge" data-status="DevamEdiyor">Devam Ediyor</span>
-  {% elif canon == 'Planlandi' %}
-    <span class="badge bg-secondary status-badge" data-status="Planlandi">Planlandı</span>
-  {% else %}
-    <span class="badge bg-light text-dark status-badge" data-status="">{{ status or '—' }}</span>
-  {% endif %}
+  <span class="badge status-badge {{ cls }}"
+        data-status="{{ canon }}"
+        data-bs-toggle="tooltip"
+        title="{{ label }}">
+    {{ label }}
+  </span>
 {%- endmacro %}
